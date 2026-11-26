@@ -10,11 +10,11 @@
 <body class="min-h-screen bg-[#05080a] font-mono text-slate-200 antialiased">
 {% let active = "vms" %}
 {% include "_nav.html" %}
-<main class="mx-auto max-w-[1180px] px-4 py-8 sm:px-8">
+<main class="mx-auto max-w-[1400px] px-4 py-10 sm:px-10">
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div class="flex min-w-0 items-center gap-3">
       <a href="/vms/{{ vm.id }}" class="inline-flex items-center gap-2 text-sm text-slate-500 transition-colors hover:text-white">
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>
+        <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>
         {{ vm.name }}
       </a>
       {% if vm.status == "running" %}
@@ -29,20 +29,24 @@
     </div>
   </div>
 
-  <div class="mt-4 overflow-hidden rounded-xl border border-[#1c2429] bg-[#0b0f12]">
-    <div class="flex items-center gap-1.5 border-b border-[#1c2429] px-4 py-2.5">
-      <span class="h-2.5 w-2.5 rounded-full bg-[#e5484d]/70"></span>
-      <span class="h-2.5 w-2.5 rounded-full bg-amber-400/60"></span>
-      <span class="h-2.5 w-2.5 rounded-full bg-emerald-400/60"></span>
-      <span class="ml-2 text-xs text-slate-500">{{ vm.name }} — console</span>
-    </div>
-    <div id="term" style="height: 72vh; background: #05080a"></div>
-  </div>
+  <div id="term" class="mt-4 overflow-hidden rounded-xl border border-[#1c2429]" style="height: max(320px, calc(100vh - 9.5rem)); background: #05080a"></div>
 </main>
 <script>
 const VM_ID = "{{ vm.id }}";
 const el = document.getElementById('term');
-const term = new Terminal({ cursorBlink: true, fontSize: 13, fontFamily: '"JetBrains Mono", ui-monospace, Menlo, monospace' });
+const term = new Terminal({
+  cursorBlink: true,
+  fontSize: 14,
+  lineHeight: 1.15,
+  fontFamily: '"JetBrains Mono", ui-monospace, Menlo, monospace',
+  theme: {
+    background: '#05080a',
+    foreground: '#c9d4dc',
+    cursor: '#e5484d',
+    cursorAccent: '#05080a',
+    selectionBackground: '#7f2b2f',
+  },
+});
 const fit = new FitAddon.FitAddon();
 term.loadAddon(fit);
 term.open(el);

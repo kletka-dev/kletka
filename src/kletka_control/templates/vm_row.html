@@ -1,14 +1,14 @@
 <tr class="group transition-colors hover:bg-[#0d1419]">
-  <td class="px-4 py-3">
+  <td class="px-5 py-3.5">
     <div class="flex items-center gap-3">
-      <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md border text-xs font-bold" style="background:{{ vm.avatar_bg }};border-color:{{ vm.avatar_border }};color:{{ vm.avatar_fg }}">{{ vm.initial }}</span>
+      <span class="grid h-9 w-9 shrink-0 place-items-center rounded-md border text-xs font-bold" style="background:{{ vm.avatar_bg }};border-color:{{ vm.avatar_border }};color:{{ vm.avatar_fg }}">{{ vm.initial }}</span>
       <div class="min-w-0">
         <a href="/vms/{{ vm.id }}" class="block max-w-[12rem] truncate font-medium text-slate-100 transition-colors group-hover:text-white">{{ vm.name }}</a>
         <span class="block max-w-[12rem] truncate text-xs text-slate-600">{{ vm.image }}</span>
       </div>
     </div>
   </td>
-  <td class="px-3 py-3">
+  <td class="px-4 py-3.5">
     {% if vm.status == "running" %}
     <span class="pill bg-emerald-400/10 text-emerald-300"><span class="pill-dot bg-emerald-400"></span>running</span>
     {% else if vm.status == "pending" %}
@@ -23,7 +23,7 @@
   <td class="px-3 py-3 text-slate-400">{{ vm.memory_display }}</td>
   <td class="px-3 py-3 text-slate-400">{{ vm.disk_display }}</td>
   <td class="px-3 py-3 text-slate-500">{% if vm.node.is_some() %}{{ vm.node.as_deref().unwrap_or("") }}{% else %}—{% endif %}</td>
-  <td class="px-4 py-3">
+  <td class="px-5 py-3.5">
     <div class="flex items-center justify-end gap-1.5">
       <a href="/vms/{{ vm.id }}/terminal" title="Terminal" aria-label="Terminal" class="icon-btn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 7 5 5-5 5"/><path d="M12.5 17H19"/></svg>
@@ -41,11 +41,11 @@
         </button>
       </form>
       {% endif %}
-      <details class="relative">
+      <details class="relative" data-menu>
         <summary class="icon-btn cursor-pointer list-none [&::-webkit-details-marker]:hidden" title="More actions" aria-label="More actions">
           <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5.5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="18.5" r="1.4"/></svg>
         </summary>
-        <div class="absolute right-0 z-10 mt-1 w-36 overflow-hidden rounded-md border border-[#1c2429] bg-[#0d1319] py-1 shadow-xl shadow-black/40">
+        <div data-menu-panel class="absolute right-0 z-50 mt-1 w-36 overflow-hidden rounded-md border border-[#1c2429] bg-[#0d1319] py-1 shadow-xl shadow-black/40">
           <form method="post" action="/vms/{{ vm.id }}/clone" onsubmit="return confirm('Clone {{ vm.name }}?')">
             <button type="submit" class="block w-full px-3 py-1.5 text-left text-xs text-slate-300 hover:bg-[#141c23]">Clone</button>
           </form>
