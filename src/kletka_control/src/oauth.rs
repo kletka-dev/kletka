@@ -143,17 +143,18 @@ impl OAuthSettings {
                     gitlab.base
                 )
             }
-            ProviderId::Steam => self.steam_authorize_url(&self.callback_url(provider)),
+            ProviderId::Steam => self.steam_authorize_url(&self.callback_url(provider), &state),
         }
     }
 
-    pub fn steam_authorize_url(&self, callback: &str) -> String {
+    pub fn steam_authorize_url(&self, callback: &str, state: &str) -> String {
+        let return_to = format!("{callback}?state={state}");
         format!(
             "https://steamcommunity.com/openid/login?openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0\
              &openid.mode=checkid_setup&openid.return_to={}&openid.realm={}\
              &openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select\
              &openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select",
-            urlencode(callback),
+            urlencode(&return_to),
             urlencode(&origin_of(callback)),
         )
     }
@@ -513,8 +514,11 @@ mod tests {
             callback,
             "https://control.example.com/login/oauth/steam/callback"
         );
-        let steam = settings.authorize_url(ProviderId::Steam, "ignored");
-        assert!(steam.contains("openid.return_to="), "{steam}");
+        let steam = settings.authorize_url(ProviderId::Steam, "st123");
+        assert!(
+            steam.contains("openid.return_to=https%3A//control.example.com/login/oauth/steam/callback%3Fstate%3Dst123"),
+            "{steam}"
+        );
         assert!(
             steam.contains("openid.realm=https%3A//control.example.com"),
             "{steam}"
