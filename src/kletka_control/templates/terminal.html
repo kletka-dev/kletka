@@ -1,36 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>kletka — {{ vm.name }} terminal</title>
-<script src="/assets/tailwind.js"></script>
+{% let page_title = vm.name %}
+{% include "_head.html" %}
 <link rel="stylesheet" href="/assets/xterm.min.css">
 <script src="/assets/xterm.min.js"></script>
 <script src="/assets/xterm-addon-fit.min.js"></script>
 </head>
-<body class="bg-gray-100 text-gray-900 min-h-screen">
-<header class="bg-white border-b">
-  <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <a href="/vms/{{ vm.id }}" class="underline text-sm">← {{ vm.name }}</a>
-      <span class="text-xs bg-gray-200 rounded px-2 py-0.5">{{ vm.status }}</span>
+<body class="min-h-screen bg-[#05080a] font-mono text-slate-200 antialiased">
+{% let active = "vms" %}
+{% include "_nav.html" %}
+<main class="mx-auto max-w-[1180px] px-4 py-8 sm:px-8">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex min-w-0 items-center gap-3">
+      <a href="/vms/{{ vm.id }}" class="inline-flex items-center gap-2 text-sm text-slate-500 transition-colors hover:text-white">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>
+        {{ vm.name }}
+      </a>
+      {% if vm.status == "running" %}
+      <span class="pill bg-emerald-400/10 text-emerald-300"><span class="pill-dot bg-emerald-400"></span>connected</span>
+      {% else %}
+      <span class="pill bg-amber-400/10 text-amber-300"><span class="pill-dot bg-amber-400"></span>{{ vm.status }}</span>
+      {% endif %}
     </div>
-    <div class="flex items-center gap-2 text-sm">
-      <span class="text-gray-500 text-xs">{{ email }}</span>
-      <label class="text-xs text-gray-500"><input id="serial" type="checkbox" class="mr-1"{% if vm.status != "running" %} checked{% endif %}>serial</label>
-      <button id="reconnect" class="border rounded px-2 py-1 text-xs">Reconnect</button>
+    <div class="flex items-center gap-3">
+      <label class="flex cursor-pointer items-center gap-1.5 text-xs text-slate-400"><input id="serial" type="checkbox" class="accent-red-500"{% if vm.status != "running" %} checked{% endif %}>serial</label>
+      <button id="reconnect" class="btn btn-ghost btn-sm">Reconnect</button>
     </div>
   </div>
-</header>
-<main class="max-w-5xl mx-auto px-4 py-4">
-  <div id="term" class="rounded overflow-hidden" style="height: 70vh; background: #000"></div>
-  <p class="text-xs text-gray-500 mt-2">Interactive shell over the WS relay (<code>console</code>, like <code>kletka console</code>). Cookies authenticate the socket — no token paste needed.</p>
+
+  <div class="mt-4 overflow-hidden rounded-xl border border-[#1c2429] bg-[#0b0f12]">
+    <div class="flex items-center gap-1.5 border-b border-[#1c2429] px-4 py-2.5">
+      <span class="h-2.5 w-2.5 rounded-full bg-[#e5484d]/70"></span>
+      <span class="h-2.5 w-2.5 rounded-full bg-amber-400/60"></span>
+      <span class="h-2.5 w-2.5 rounded-full bg-emerald-400/60"></span>
+      <span class="ml-2 text-xs text-slate-500">{{ vm.name }} — console</span>
+    </div>
+    <div id="term" style="height: 72vh; background: #05080a"></div>
+  </div>
 </main>
 <script>
 const VM_ID = "{{ vm.id }}";
 const el = document.getElementById('term');
-const term = new Terminal({ cursorBlink: true, fontSize: 14 });
+const term = new Terminal({ cursorBlink: true, fontSize: 13, fontFamily: '"JetBrains Mono", ui-monospace, Menlo, monospace' });
 const fit = new FitAddon.FitAddon();
 term.loadAddon(fit);
 term.open(el);
@@ -92,5 +104,7 @@ function connect() {
 document.getElementById('reconnect').onclick = () => { attempts = 0; backoffMs = 1000; connect(); };
 connect();
 </script>
+  </div>
+</div>
 </body>
 </html>

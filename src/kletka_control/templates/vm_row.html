@@ -1,0 +1,59 @@
+<tr class="group transition-colors hover:bg-[#0d1419]">
+  <td class="px-4 py-3">
+    <div class="flex items-center gap-3">
+      <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md border text-xs font-bold" style="background:{{ vm.avatar_bg }};border-color:{{ vm.avatar_border }};color:{{ vm.avatar_fg }}">{{ vm.initial }}</span>
+      <div class="min-w-0">
+        <a href="/vms/{{ vm.id }}" class="block max-w-[12rem] truncate font-medium text-slate-100 transition-colors group-hover:text-white">{{ vm.name }}</a>
+        <span class="block max-w-[12rem] truncate text-xs text-slate-600">{{ vm.image }}</span>
+      </div>
+    </div>
+  </td>
+  <td class="px-3 py-3">
+    {% if vm.status == "running" %}
+    <span class="pill bg-emerald-400/10 text-emerald-300"><span class="pill-dot bg-emerald-400"></span>running</span>
+    {% else if vm.status == "pending" %}
+    <span class="pill bg-amber-400/10 text-amber-300"><span class="pill-dot bg-amber-400"></span>pending</span>
+    {% else if vm.status == "failed" %}
+    <span class="pill bg-red-400/10 text-red-300"><span class="pill-dot bg-red-400"></span>failed</span>
+    {% else %}
+    <span class="pill bg-slate-500/10 text-slate-400"><span class="pill-dot bg-slate-500"></span>{{ vm.status }}</span>
+    {% endif %}
+  </td>
+  <td class="px-3 py-3 text-slate-400">{{ vm.vcpu }} vCPU</td>
+  <td class="px-3 py-3 text-slate-400">{{ vm.memory_display }}</td>
+  <td class="px-3 py-3 text-slate-400">{{ vm.disk_display }}</td>
+  <td class="px-3 py-3 text-slate-500">{% if vm.node.is_some() %}{{ vm.node.as_deref().unwrap_or("") }}{% else %}—{% endif %}</td>
+  <td class="px-4 py-3">
+    <div class="flex items-center justify-end gap-1.5">
+      <a href="/vms/{{ vm.id }}/terminal" title="Terminal" aria-label="Terminal" class="icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 7 5 5-5 5"/><path d="M12.5 17H19"/></svg>
+      </a>
+      {% if vm.status == "running" %}
+      <form method="post" action="/vms/{{ vm.id }}/stop">
+        <button type="submit" title="Stop" aria-label="Stop" class="icon-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>
+        </button>
+      </form>
+      {% else %}
+      <form method="post" action="/vms/{{ vm.id }}/start">
+        <button type="submit" title="Start" aria-label="Start" class="icon-btn">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
+        </button>
+      </form>
+      {% endif %}
+      <details class="relative">
+        <summary class="icon-btn cursor-pointer list-none [&::-webkit-details-marker]:hidden" title="More actions" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5.5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="18.5" r="1.4"/></svg>
+        </summary>
+        <div class="absolute right-0 z-10 mt-1 w-36 overflow-hidden rounded-md border border-[#1c2429] bg-[#0d1319] py-1 shadow-xl shadow-black/40">
+          <form method="post" action="/vms/{{ vm.id }}/clone" onsubmit="return confirm('Clone {{ vm.name }}?')">
+            <button type="submit" class="block w-full px-3 py-1.5 text-left text-xs text-slate-300 hover:bg-[#141c23]">Clone</button>
+          </form>
+          <form method="post" action="/vms/{{ vm.id }}/delete" onsubmit="return confirm('Destroy {{ vm.name }}?')">
+            <button type="submit" class="block w-full px-3 py-1.5 text-left text-xs text-[#ff8a8d] hover:bg-[#1a0e11]">Destroy</button>
+          </form>
+        </div>
+      </details>
+    </div>
+  </td>
+</tr>

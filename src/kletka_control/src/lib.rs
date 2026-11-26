@@ -180,6 +180,26 @@ async fn assets(axum::extract::Path(path): axum::extract::Path<String>) -> Respo
             include_bytes!("../assets/htmx.min.js"),
         ),
         (
+            "panel.css",
+            "text/css",
+            include_bytes!("../assets/panel.css"),
+        ),
+        (
+            "fonts/jetbrains-mono-latin-400-normal.woff2",
+            "font/woff2",
+            include_bytes!("../assets/fonts/jetbrains-mono-latin-400-normal.woff2"),
+        ),
+        (
+            "fonts/jetbrains-mono-latin-500-normal.woff2",
+            "font/woff2",
+            include_bytes!("../assets/fonts/jetbrains-mono-latin-500-normal.woff2"),
+        ),
+        (
+            "fonts/jetbrains-mono-latin-700-normal.woff2",
+            "font/woff2",
+            include_bytes!("../assets/fonts/jetbrains-mono-latin-700-normal.woff2"),
+        ),
+        (
             "xterm.min.js",
             "application/javascript",
             include_bytes!("../assets/xterm.min.js"),
@@ -198,17 +218,51 @@ async fn assets(axum::extract::Path(path): axum::extract::Path<String>) -> Respo
     if path.contains("..") || path.contains('\\') {
         return StatusCode::NOT_FOUND.into_response();
     }
-    let Some((_, mime, bytes)) = ASSETS.iter().find(|(name, _, _)| *name == path) else {
-        return StatusCode::NOT_FOUND.into_response();
-    };
+    if let Some((mime, bytes)) = ASSETS
+        .iter()
+        .find(|(name, _, _)| *name == path)
+        .map(|(_, mime, bytes)| (*mime, *bytes))
+    {
+        return asset_response(mime, axum::body::Body::from(bytes));
+    }
+    if let Some(name) = path.strip_prefix("flavor/")
+        && let Some((mime, bytes)) = flavor_asset(name)
+    {
+        return asset_response(mime, axum::body::Body::from(bytes));
+    }
+    StatusCode::NOT_FOUND.into_response()
+}
+
+fn asset_response(mime: &'static str, bytes: axum::body::Body) -> Response {
     (
         [
-            (axum::http::header::CONTENT_TYPE, *mime),
+            (axum::http::header::CONTENT_TYPE, mime),
             (axum::http::header::CACHE_CONTROL, "public, max-age=3600"),
         ],
-        *bytes,
+        bytes,
     )
         .into_response()
+}
+
+fn flavor_asset(name: &str) -> Option<(&'static str, Vec<u8>)> {
+    if name.is_empty() || name.contains('/') || name.contains('\\') {
+        return None;
+    }
+    let entries = std::fs::read_dir("assets/flavor").ok()?;
+    for entry in entries.flatten() {
+        if entry.file_name().to_string_lossy() == name {
+            let mime = match entry.path().extension()?.to_str()? {
+                "png" => "image/png",
+                "svg" => "image/svg+xml",
+                "webp" => "image/webp",
+                "gif" => "image/gif",
+                "jpg" | "jpeg" => "image/jpeg",
+                _ => return None,
+            };
+            return Some((mime, std::fs::read(entry.path()).ok()?));
+        }
+    }
+    None
 }
 
 #[cfg(test)]

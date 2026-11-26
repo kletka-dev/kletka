@@ -3,28 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>kletka — platform admin</title>
-<script src="/assets/tailwind.js"></script>
+{% let page_title = "Platform admin" %}
+{% include "_head.html" %}
 <script src="/assets/htmx.min.js"></script>
 </head>
-<body class="bg-gray-100 text-gray-900 min-h-screen">
+<body class="min-h-screen bg-[#05080a] font-mono text-slate-200 antialiased">
+{% let active = "admin" %}
 {% include "_nav.html" %}
-<main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+<main class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
   {% if let Some(error) = error %}
-  <div class="bg-red-100 text-red-700 text-sm rounded px-3 py-2">{{ error }}</div>
+  <div class="rounded-lg border border-[#7f2b2f] bg-[#150a0c] px-4 py-3 text-sm text-[#ff8a8d]">{{ error }}</div>
   {% endif %}
 
-  <section class="bg-white shadow rounded p-4">
+  <section class="rounded-xl border border-[#1c2429] bg-[#0b0f12] p-5">
     <h2 class="font-semibold mb-1">Namespace policy</h2>
-    <p class="text-sm text-gray-600">Creation: <b>{{ policy }}</b> · default allowance: <b>{{ default_allowance }}</b> per user · new namespace quota: <b>{{ default_quota }}</b></p>
-    <p class="text-xs text-gray-500 mt-1">Set by KLETKA_NAMESPACE_CREATION, KLETKA_MAX_NAMESPACES_PER_USER and KLETKA_NAMESPACE_DEFAULT_MAX_*. A per-user allowance below overrides the policy, and platform admins can always create namespaces.</p>
+    <p class="text-sm text-slate-300">Creation: <b>{{ policy }}</b> · default allowance: <b>{{ default_allowance }}</b> per user · new namespace quota: <b>{{ default_quota }}</b></p>
+    <p class="mt-1 text-xs text-slate-400">Set by KLETKA_NAMESPACE_CREATION, KLETKA_MAX_NAMESPACES_PER_USER and KLETKA_NAMESPACE_DEFAULT_MAX_*. A per-user allowance below overrides the policy, and platform admins can always create namespaces.</p>
   </section>
 
-  <section class="bg-white shadow rounded p-4">
+  <section class="overflow-hidden rounded-xl border border-[#1c2429] bg-[#0b0f12] p-5">
     <h2 class="font-semibold mb-3">Users</h2>
     <table class="w-full text-sm">
       <thead>
-        <tr class="text-left text-gray-500 border-b">
+        <tr class="border-b border-[#1c2429] text-left text-xs uppercase tracking-wider text-slate-500">
           <th class="py-1 pr-2">Email</th>
           <th class="py-1 pr-2">Platform admin</th>
           <th class="py-1 pr-2">Namespaces owned</th>
@@ -34,19 +35,19 @@
       </thead>
       <tbody>
         {% for u in users %}
-        <tr class="border-b last:border-0 align-top">
+        <tr class="border-b border-[#1c2429] align-top text-slate-300 last:border-0">
           <td class="py-1 pr-2">{{ u.email }}</td>
           <td class="py-1 pr-2 whitespace-nowrap">
             {% if u.via_config %}
-            yes <span class="text-xs text-gray-500">(config)</span>
+            yes <span class="text-xs text-slate-400">(config)</span>
             {% else %}
             <form class="inline" method="post" action="/admin/users/{{ u.id }}">
               {% if u.platform_admin %}
               <input type="hidden" name="platform_admin" value="false">
-              yes <button class="underline text-red-600 ml-1" type="submit" onclick="return confirm('Revoke platform admin from {{ u.email }}?')">revoke</button>
+              yes <button class="ml-1 text-[#ff6b6e] hover:underline" type="submit" onclick="return confirm('Revoke platform admin from {{ u.email }}?')">revoke</button>
               {% else %}
               <input type="hidden" name="platform_admin" value="true">
-              no <button class="underline ml-1" type="submit" onclick="return confirm('Make {{ u.email }} a platform admin?')">grant</button>
+              no <button class="ml-1 text-[#4ade80] hover:underline" type="submit" onclick="return confirm('Make {{ u.email }} a platform admin?')">grant</button>
               {% endif %}
             </form>
             {% endif %}
@@ -54,8 +55,8 @@
           <td class="py-1 pr-2">{{ u.owned }}</td>
           <td class="py-1 pr-2">
             <form class="flex items-center gap-1" method="post" action="/admin/users/{{ u.id }}">
-              <input name="max_namespaces" value="{{ u.max_namespaces }}" placeholder="default" inputmode="numeric" class="border rounded px-1 py-0.5 text-sm w-20" title="blank = use the configured policy; 0 = cannot create">
-              <button class="underline" type="submit">set</button>
+              <input name="max_namespaces" value="{{ u.max_namespaces }}" placeholder="default" inputmode="numeric" class="field w-20" title="blank = use the configured policy; 0 = cannot create">
+              <button class="text-slate-400 hover:underline" type="submit">set</button>
             </form>
           </td>
           <td class="py-1"><a class="underline" href="/namespaces/{{ u.id }}">quota &amp; members</a></td>
@@ -65,11 +66,11 @@
     </table>
   </section>
 
-  <section class="bg-white shadow rounded p-4">
+  <section class="overflow-hidden rounded-xl border border-[#1c2429] bg-[#0b0f12] p-5">
     <h2 class="font-semibold mb-3">All namespaces</h2>
     <table class="w-full text-sm">
       <thead>
-        <tr class="text-left text-gray-500 border-b">
+        <tr class="border-b border-[#1c2429] text-left text-xs uppercase tracking-wider text-slate-500">
           <th class="py-1 pr-2">Name</th>
           <th class="py-1 pr-2">Members</th>
           <th class="py-1 pr-2">Usage</th>
@@ -77,18 +78,20 @@
       </thead>
       <tbody>
         {% for ns in namespaces %}
-        <tr class="border-b last:border-0">
+        <tr class="border-b border-[#1c2429] text-slate-300 last:border-0">
           <td class="py-1 pr-2">
             <a class="underline font-medium" href="/namespaces/{{ ns.id }}">{{ ns.name }}</a>
-            {% if ns.personal %}<span class="text-xs bg-gray-200 rounded px-1.5 py-0.5 ml-1">personal</span>{% endif %}
+            {% if ns.personal %}<span class="ml-1 rounded-full border border-[#1c2429] bg-[#141c23] px-2 py-0.5 text-[11px] text-slate-300">personal</span>{% endif %}
           </td>
           <td class="py-1 pr-2">{{ ns.members }}</td>
-          <td class="py-1 pr-2 text-gray-600">{{ ns.usage }}</td>
+          <td class="py-1 pr-2 text-slate-400">{{ ns.usage }}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </section>
 </main>
+</div>
+</div>
 </body>
 </html>
