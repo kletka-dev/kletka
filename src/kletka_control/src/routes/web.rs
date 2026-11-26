@@ -43,12 +43,34 @@ impl From<&kletka_types::Vm> for VmView {
 #[template(path = "login.html")]
 struct LoginPage {
     error: Option<String>,
+    password: bool,
+    providers: Vec<ProviderButton>,
 }
 
 #[derive(Template)]
 #[template(path = "register.html")]
 struct RegisterPage {
     error: Option<String>,
+    password: bool,
+    providers: Vec<ProviderButton>,
+}
+
+pub(crate) struct ProviderButton {
+    pub id: &'static str,
+    pub label: &'static str,
+}
+
+pub(crate) fn provider_buttons(state: &AppState) -> Vec<ProviderButton> {
+    state
+        .auth
+        .oauth
+        .enabled()
+        .iter()
+        .map(|provider| ProviderButton {
+            id: provider.as_str(),
+            label: provider.label(),
+        })
+        .collect()
 }
 
 #[derive(Template)]
@@ -251,12 +273,20 @@ pub async fn index() -> Response {
     Redirect::to("/vms").into_response()
 }
 
-pub async fn login_page() -> Response {
-    render(LoginPage { error: None })
+pub async fn login_page(State(state): State<AppState>) -> Response {
+    render(LoginPage {
+        error: None,
+        password: state.auth.password,
+        providers: provider_buttons(&state),
+    })
 }
 
-pub async fn register_page() -> Response {
-    render(RegisterPage { error: None })
+pub async fn register_page(State(state): State<AppState>) -> Response {
+    render(RegisterPage {
+        error: None,
+        password: state.auth.password,
+        providers: provider_buttons(&state),
+    })
 }
 
 #[derive(Debug, Deserialize)]
@@ -307,11 +337,22 @@ pub async fn login_submit(
     headers: HeaderMap,
     axum::Form(form): axum::Form<AuthForm>,
 ) -> Response {
+    if !state.auth.password {
+        return render(LoginPage {
+            error: Some("email/password sign-in is disabled; use one of the buttons below".into()),
+            password: false,
+            providers: provider_buttons(&state),
+        });
+    }
     let email = form.email.unwrap_or_default();
     let password = form.password.unwrap_or_default();
     match do_login(&state, &email, &password, &meta).await {
         Ok(token) => login_success(&headers, &token),
-        Err((_, msg)) => render(LoginPage { error: Some(msg) }),
+        Err((_, msg)) => render(LoginPage {
+            error: Some(msg),
+            password: true,
+            providers: provider_buttons(&state),
+        }),
     }
 }
 
@@ -321,6 +362,13 @@ pub async fn register_submit(
     headers: HeaderMap,
     axum::Form(form): axum::Form<AuthForm>,
 ) -> Response {
+    if !state.auth.password {
+        return render(RegisterPage {
+            error: Some("email/password sign-up is disabled; use one of the buttons below".into()),
+            password: false,
+            providers: provider_buttons(&state),
+        });
+    }
     let email = form.email.unwrap_or_default();
     let password = form.password.unwrap_or_default();
     let session =
@@ -329,6 +377,8 @@ pub async fn register_submit(
             Err(err) => {
                 return render(RegisterPage {
                     error: Some(err.to_string()),
+                    password: true,
+                    providers: provider_buttons(&state),
                 });
             }
         };

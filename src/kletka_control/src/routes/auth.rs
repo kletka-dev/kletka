@@ -11,6 +11,16 @@ use crate::error::{ApiError, ApiResult};
 use crate::quota;
 use crate::state::AppState;
 
+fn password_enabled(state: &AppState) -> ApiResult<()> {
+    if state.auth.password {
+        return Ok(());
+    }
+    Err(ApiError::forbidden(
+        "email/password sign-in is disabled on this deployment; use one of the OAuth providers \
+         (see GET /v1/auth/methods)",
+    ))
+}
+
 #[derive(Debug, Deserialize)]
 pub struct AuthRequest {
     pub email: String,
@@ -22,6 +32,7 @@ pub async fn signup(
     meta: RequestMeta,
     Json(req): Json<AuthRequest>,
 ) -> ApiResult<Json<AuthResponse>> {
+    password_enabled(&state)?;
     credentials::signup(&state.db, &req.email, req.password.as_deref(), &meta, None)
         .await
         .map(Json)
@@ -33,6 +44,7 @@ pub async fn login(
     meta: RequestMeta,
     Json(req): Json<AuthRequest>,
 ) -> ApiResult<Json<AuthResponse>> {
+    password_enabled(&state)?;
     credentials::login(&state.db, &req.email, req.password.as_deref(), &meta, None)
         .await
         .map(Json)

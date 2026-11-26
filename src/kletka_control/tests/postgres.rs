@@ -41,6 +41,7 @@ fn state(pool: sqlx::AnyPool) -> (AppState, Router) {
         provisioner: Arc::new(K8sProvisioner::for_tests(K8sConfig::default())),
         rate_limits: RateLimits::disabled(),
         namespaces: Default::default(),
+        auth: Default::default(),
     };
     let app = router(state.clone());
     (state, app)

@@ -7,7 +7,7 @@ use kletka_types::SnapshotInfo;
 use super::{
     Cli, Command, FileCommand, IdleTimeout, SnapshotCommand, VmStateFilter, format_duration,
 };
-use crate::client::Client;
+use crate::client::{self, Client};
 use crate::error::{CliError, CliResult, ErrorKind, io_error};
 use crate::{config, session};
 use kletka_types::{AccountInfo, CreateVmRequest, Vm, VmStatus};
@@ -18,9 +18,12 @@ pub(super) async fn dispatch(cli: &Cli) -> CliResult<ExitCode> {
             control,
             email,
             password,
+            oauth,
+            provider,
+            no_browser,
         } => {
             let url = config::control_url(control.as_deref().or(cli.control_url.as_deref()));
-            return login(&url, email.clone(), password.clone()).await;
+            return login(&url, email.as_deref(), password.as_deref(), *oauth, provider.as_deref(), *no_browser).await;
         }
         Command::Logout => {
             let message = if config::clear_credentials()? {
@@ -133,22 +136,121 @@ pub(super) async fn dispatch(cli: &Cli) -> CliResult<ExitCode> {
     }
 }
 
-async fn login(url: &str, email: Option<String>, password: Option<String>) -> CliResult<ExitCode> {
+async fn login(
+    url: &str,
+    email: Option<&str>,
+    password: Option<&str>,
+    oauth: bool,
+    provider: Option<&str>,
+    no_browser: bool,
+) -> CliResult<ExitCode> {
+    let methods = client::auth_methods(url).await?;
+    match oauth_choice(&methods, oauth, provider, email, password)? {
+        Some(provider) => {
+            let outcome = crate::oauth::sign_in(url, &provider, no_browser).await?;
+            config::save_credentials(url, &outcome.token)?;
+            println!("logged in with {} ({url})", crate::oauth::label(&provider));
+            Ok(ExitCode::SUCCESS)
+        }
+        None => login_password(url, email, password).await,
+    }
+}
+
+fn oauth_choice(
+    methods: &kletka_types::AuthMethods,
+    oauth: bool,
+    provider: Option<&str>,
+    email: Option<&str>,
+    password: Option<&str>,
+) -> CliResult<Option<String>> {
     let interactive = std::io::stdin().is_terminal();
-    let email = match email.filter(|email| !email.trim().is_empty()) {
-        Some(email) => email,
+    if let Some(provider) = provider {
+        let provider = methods
+            .oauth
+            .iter()
+            .find(|enabled| enabled.eq_ignore_ascii_case(provider.trim()))
+            .ok_or_else(|| {
+                CliError::new(format!(
+                    "the OAuth provider '{provider}' is not enabled on this control plane"
+                ))
+                .hint(match methods.oauth.is_empty() {
+                    true => "this deployment has no OAuth providers enabled",
+                    false => "enabled providers are listed by `kletka login --oauth`",
+                })
+            })?;
+        return Ok(Some(provider.clone()));
+    }
+    if oauth {
+        return pick_provider(methods, interactive).map(Some);
+    }
+    if !methods.password {
+        if email.is_some() || password.is_some() {
+            return Err(CliError::new(
+                "email/password sign-in is disabled on this control plane",
+            )
+            .hint("sign in with an OAuth provider instead (`kletka login --oauth`)"));
+        }
+        return pick_provider(methods, interactive).map(Some);
+    }
+    if (email.is_none() && password.is_none() && interactive) && !methods.oauth.is_empty() {
+        let mut choices = vec!["Email and password".to_string()];
+        choices.extend(methods.oauth.iter().map(|p| crate::oauth::label(p)));
+        let picked = inquire::Select::new("Sign in with", choices)
+            .raw_prompt()
+            .map_err(prompt_error)?;
+        if picked.index > 0 {
+            return Ok(Some(methods.oauth[picked.index - 1].clone()));
+        }
+    }
+    Ok(None)
+}
+
+fn pick_provider(methods: &kletka_types::AuthMethods, interactive: bool) -> CliResult<String> {
+    match methods.oauth.len() {
+        0 => Err(CliError::new(
+            "this control plane has no OAuth providers enabled",
+        )
+        .hint(if methods.password {
+            "log in with an email and password"
+        } else {
+            "ask the operator to enable a sign-in method"
+        })),
+        1 => Ok(methods.oauth[0].clone()),
+        _ if interactive => {
+            let choices = methods.oauth.iter().map(|p| crate::oauth::label(p));
+            let picked = inquire::Select::new("Sign in with", choices.collect())
+                .raw_prompt()
+                .map_err(prompt_error)?;
+            Ok(methods.oauth[picked.index].clone())
+        }
+        _ => Err(CliError::new("several OAuth providers are enabled")
+            .hint("pick one with `--provider github|gitlab|steam`")),
+    }
+}
+
+async fn login_password(url: &str, email: Option<&str>, password: Option<&str>) -> CliResult<ExitCode> {
+    let interactive = std::io::stdin().is_terminal();
+    let email = match email.map(str::trim).filter(|email| !email.is_empty()) {
+        Some(email) => email.to_string(),
         None if interactive => inquire::Text::new("Email:")
             .prompt()
             .map_err(prompt_error)?,
-        None => return Err(CliError::new("no email given").hint("pass `--email <address>`")),
+        None => {
+            return Err(
+                CliError::new("no email given").hint("pass `--email <address>`"),
+            );
+        }
     };
-    let password = match password
+    let password: Option<String> = password
         .filter(|password| !password.is_empty())
+        .map(str::to_string)
         .or_else(|| {
             std::env::var("KLETKA_PASSWORD")
                 .ok()
                 .filter(|p| !p.is_empty())
-        }) {
+        });
+
+    let password = match password {
         Some(password) => password,
         None if interactive => inquire::Password::new("Password:")
             .without_confirmation()
@@ -160,7 +262,6 @@ async fn login(url: &str, email: Option<String>, password: Option<String>) -> Cl
             );
         }
     };
-
     let email = email.trim();
     let outcome = crate::client::login(url, email, &password).await?;
     config::save_credentials(url, &outcome.token)?;
@@ -816,6 +917,54 @@ mod tests {
         assert!(table.contains("clean"));
         assert!(table.contains("3M"), "{table}");
         assert!(table.contains("2023-11-14 22:13 UTC"), "{table}");
+    }
+
+    #[test]
+    #[test]
+    fn oauth_choice_respects_flags_and_enabled_methods() {
+        let methods = |password: bool, oauth: &[&str]| kletka_types::AuthMethods {
+            password,
+            oauth: oauth.iter().map(|p| p.to_string()).collect(),
+        };
+        assert_eq!(
+            oauth_choice(&methods(true, &["github"]), false, Some("github"), None, None)
+                .unwrap()
+                .as_deref(),
+            Some("github")
+        );
+        assert!(
+            oauth_choice(&methods(true, &[]), false, Some("steam"), None, None).is_err(),
+            "unknown providers are rejected"
+        );
+        assert_eq!(
+            oauth_choice(&methods(false, &["gitlab"]), false, None, None, None)
+                .unwrap()
+                .as_deref(),
+            Some("gitlab")
+        );
+        assert!(oauth_choice(&methods(false, &[]), false, None, None, None).is_err());
+        assert!(
+            oauth_choice(
+                &methods(false, &["github"]),
+                false,
+                None,
+                Some("a@example.com"),
+                None
+            )
+            .is_err(),
+            "email flags against a password-disabled deployment are rejected"
+        );
+        assert_eq!(
+            oauth_choice(
+                &methods(true, &["github"]),
+                false,
+                None,
+                Some("a@example.com"),
+                Some("pw")
+            )
+            .unwrap(),
+            None
+        );
     }
 
     #[test]

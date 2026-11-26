@@ -10,9 +10,26 @@
 <body class="bg-gray-100 text-gray-900 min-h-screen flex items-center justify-center">
 <div class="bg-white shadow rounded p-8 w-full max-w-sm">
   <h1 class="text-2xl font-bold mb-1">kletka</h1>
-  <p class="text-sm text-gray-500 mb-6">Create your account (min 8-char password)</p>
+  <p class="text-sm text-gray-500 mb-6">Create your account{% if password %} (min 8-char password){% endif %}</p>
   {% if error.is_some() %}
   <div class="bg-red-100 text-red-700 text-sm rounded px-3 py-2 mb-4">{{ error.as_deref().unwrap_or("") }}</div>
+  {% endif %}
+  {% if providers.is_empty() && !password %}
+  <p class="text-sm text-red-700">This deployment has no sign-up methods enabled.</p>
+  {% endif %}
+  {% for provider in providers %}
+  <a href="/login/oauth/{{ provider.id }}"
+     class="w-full border rounded px-3 py-2 text-sm font-medium mb-2 block text-center hover:bg-gray-50">
+    Sign up with {{ provider.label }}
+  </a>
+  {% endfor %}
+  {% if password %}
+  {% if !providers.is_empty() %}
+  <div class="flex items-center gap-2 my-4">
+    <span class="flex-1 border-t border-gray-200"></span>
+    <span class="text-xs text-gray-400">or with email</span>
+    <span class="flex-1 border-t border-gray-200"></span>
+  </div>
   {% endif %}
   <form method="post" action="/register" class="space-y-3">
     <div>
@@ -28,6 +45,7 @@
     <button type="submit" class="w-full bg-black text-white rounded px-3 py-2 text-sm font-medium">Register</button>
   </form>
   <p class="text-sm text-gray-500 mt-4">Have an account? <a class="underline" href="/login">Log in</a></p>
+  {% endif %}
 </div>
 </body>
 </html>
