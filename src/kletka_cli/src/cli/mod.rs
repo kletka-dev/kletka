@@ -197,6 +197,15 @@ pub enum Command {
 
         #[arg(long)]
         password: Option<String>,
+
+        #[arg(long, conflicts_with_all = ["email", "password"])]
+        oauth: bool,
+
+        #[arg(long, value_name = "PROVIDER")]
+        provider: Option<String>,
+
+        #[arg(long = "no-browser")]
+        no_browser: bool,
     },
 
     Logout,

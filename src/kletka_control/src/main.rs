@@ -36,6 +36,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let cli = Cli::parse();
     let config = Config::from_env();
+    if let Err(err) = config.auth.validate() {
+        eprintln!("invalid auth configuration: {err}");
+        return Err(err.into());
+    }
     let db = db::connect(&config.database_url).await?;
 
     match cli.command.unwrap_or(Command::Serve) {
@@ -53,6 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 config.admin_token.clone(),
                 config.rate_limits.clone(),
                 config.namespaces.clone(),
+                config.auth.clone(),
             );
             kletka_control::idle::spawn(state.clone(), gate);
 

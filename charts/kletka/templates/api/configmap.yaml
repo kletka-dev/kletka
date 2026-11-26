@@ -1,3 +1,23 @@
+{{- $oauth := .Values.api.auth.oauth }}
+{{- $oauthEnabled := or $oauth.github.enabled $oauth.gitlab.enabled $oauth.steam.enabled }}
+{{- $publicUrl := "" }}
+{{- if $oauthEnabled }}
+{{- $publicUrl = default (printf "https://%s" .Values.api.ingress.host) (trim (toString .Values.api.auth.publicUrl)) }}
+{{- if not $publicUrl }}
+{{- fail "api.auth.publicUrl is required when OAuth is enabled (or enable api.ingress)" }}
+{{- end }}
+{{- end }}
+{{- if and (not .Values.api.auth.password) (not $oauthEnabled) }}
+{{- fail "api.auth.password=false requires an OAuth provider (api.auth.oauth.github/gitlab/steam)" }}
+{{- end }}
+{{- range $provider := list "github" "gitlab" }}
+{{- $spec := index $oauth $provider }}
+{{- if $spec.enabled }}
+{{- if and (not $.Values.api.secret.existingSecret) (not $.Values.api.auth.oauth.existingSecret) (or (not $spec.clientId) (not $spec.clientSecret)) }}
+{{- fail (printf "api.auth.oauth.%s requires clientId and clientSecret (or set api.secret.existingSecret)" $provider) }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- $config := dict
   "KLETKA_BIND_ADDR" "0.0.0.0:8080"
   "KLETKA_DATABASE_URL" "sqlite:/var/lib/kletka/control.db?mode=rwc"
@@ -29,6 +49,16 @@
 {{- end }}
 {{- if .Values.api.database.external }}
 {{- $_ := unset $config "KLETKA_DATABASE_URL" }}
+{{- end }}
+{{- $_ := set $config "KLETKA_AUTH_PASSWORD" (toString .Values.api.auth.password) }}
+{{- if $publicUrl }}
+{{- $_ := set $config "KLETKA_PUBLIC_URL" $publicUrl }}
+{{- end }}
+{{- if $oauth.gitlab.enabled }}
+{{- $_ := set $config "KLETKA_OAUTH_GITLAB_URL" (default "https://gitlab.com" $oauth.gitlab.url) }}
+{{- end }}
+{{- if $oauth.steam.enabled }}
+{{- $_ := set $config "KLETKA_OAUTH_STEAM_ENABLED" "true" }}
 {{- end }}
 apiVersion: v1
 kind: ConfigMap

@@ -19,6 +19,21 @@ Check that vm nodes advertise KVM:
 {{- if .Values.api.ingress.enabled }}
 
 Log in: kletka login --control https://{{ .Values.api.ingress.host }} --email you@example.com
+{{- if or .Values.api.auth.oauth.github.enabled .Values.api.auth.oauth.gitlab.enabled .Values.api.auth.oauth.steam.enabled }}
+
+OAuth: register these callback URLs with each provider before first sign-in:
+{{- if .Values.api.auth.oauth.github.enabled }}
+  GitHub:          https://{{ .Values.api.ingress.host }}/login/oauth/github/callback
+{{- end }}
+{{- if .Values.api.auth.oauth.gitlab.enabled }}
+  GitLab:          https://{{ .Values.api.ingress.host }}/login/oauth/gitlab/callback
+{{- end }}
+{{- if .Values.api.auth.oauth.steam.enabled }}
+  Steam (OpenID):  https://{{ .Values.api.ingress.host }}/login/oauth/steam/callback
+{{- end }}
+  CLI sign-in additionally redirects to http://127.0.0.1:<port>/ on the user's machine
+  (GitHub allows any localhost port; for GitLab add it as a second redirect URI).
+{{- end }}
 {{- else }}
 
 The API Service is cluster-internal ({{ include "kletka.apiName" . }}:{{ .Values.api.service.port }}); enable api.ingress or port-forward:

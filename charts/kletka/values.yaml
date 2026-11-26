@@ -30,6 +30,23 @@ api:
     authPerMinute: 10
     apiPerMinute: 600
   platformAdmins: []
+  auth:
+    password: true
+    publicUrl: ""
+    oauth:
+      existingSecret: ""
+      github:
+        enabled: false
+        clientId: ""
+        clientSecret: ""
+      gitlab:
+        enabled: false
+        url: https://gitlab.com
+        clientId: ""
+        clientSecret: ""
+      steam:
+        enabled: false
+        apiKey: ""
   namespaces:
     creation: everyone
     maxPerUser: 3

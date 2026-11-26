@@ -449,6 +449,67 @@ pub struct LoginOutcome {
     pub token: String,
 }
 
+pub async fn auth_methods(url: &str) -> CliResult<kletka_types::AuthMethods> {
+    let http = reqwest::Client::new();
+    let response = http
+        .get(format!("{url}/v1/auth/methods"))
+        .send()
+        .await
+        .map_err(|err| transport_error(url, &err))?;
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.bytes().await.unwrap_or_default();
+        return Err(status_error(status, &body, "read the sign-in methods"));
+    }
+    response
+        .json()
+        .await
+        .map_err(|err| transport_error(url, &err))
+}
+
+pub async fn oauth_start(
+    url: &str,
+    provider: &str,
+    redirect_uri: Option<&str>,
+) -> CliResult<kletka_types::OAuthStart> {
+    let http = reqwest::Client::new();
+    let body = serde_json::json!({ "provider": provider, "redirect_uri": redirect_uri });
+    let response = http
+        .post(format!("{url}/v1/auth/oauth/cli/start"))
+        .json(&body)
+        .send()
+        .await
+        .map_err(|err| transport_error(url, &err))?;
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.bytes().await.unwrap_or_default();
+        return Err(status_error(status, &body, "start the OAuth sign-in"));
+    }
+    response
+        .json()
+        .await
+        .map_err(|err| transport_error(url, &err))
+}
+
+pub async fn oauth_poll(url: &str, state: &str) -> CliResult<kletka_types::OAuthPoll> {
+    let http = reqwest::Client::new();
+    let path = format!("/v1/auth/oauth/poll/{}", urlencode(state));
+    let response = http
+        .get(format!("{url}{path}"))
+        .send()
+        .await
+        .map_err(|err| transport_error(url, &err))?;
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.bytes().await.unwrap_or_default();
+        return Err(status_error(status, &body, "check the OAuth sign-in"));
+    }
+    response
+        .json()
+        .await
+        .map_err(|err| transport_error(url, &err))
+}
+
 pub async fn login(url: &str, email: &str, password: &str) -> CliResult<LoginOutcome> {
     let http = reqwest::Client::new();
     let payload = serde_json::json!({ "email": email, "password": password });

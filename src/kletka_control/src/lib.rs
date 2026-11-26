@@ -7,6 +7,7 @@ pub mod idle;
 pub mod k8s;
 pub mod leader;
 pub mod namespaces;
+pub mod oauth;
 pub mod password;
 pub mod quota;
 pub mod ratelimit;
@@ -33,6 +34,8 @@ pub fn router(state: AppState) -> Router {
             "/register",
             get(routes::web::register_page).post(routes::web::register_submit),
         )
+        .route("/login/oauth/{provider}", get(routes::oauth::start))
+        .route("/login/oauth/{provider}/callback", get(routes::oauth::callback))
         .route("/logout", post(routes::web::logout))
         .route(
             "/vms",
@@ -87,6 +90,9 @@ pub fn router(state: AppState) -> Router {
         .route("/v1/auth/signup", post(routes::auth::signup))
         .route("/v1/auth/login", post(routes::auth::login))
         .route("/v1/auth/me", get(routes::auth::me))
+        .route("/v1/auth/methods", get(routes::oauth::methods))
+        .route("/v1/auth/oauth/cli/start", post(routes::oauth::cli_start))
+        .route("/v1/auth/oauth/poll/{state}", get(routes::oauth::poll))
         .route("/v1/vms", get(routes::vms::list).post(routes::vms::create))
         .route(
             "/v1/vms/{id}",

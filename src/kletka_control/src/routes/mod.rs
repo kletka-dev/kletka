@@ -4,6 +4,7 @@ pub mod auth;
 pub mod clone;
 pub mod images;
 pub mod namespaces;
+pub mod oauth;
 pub mod relay;
 pub mod snapshots;
 pub mod vms;

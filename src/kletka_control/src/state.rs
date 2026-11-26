@@ -2,6 +2,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use crate::k8s::{K8sConfig, K8sProvisioner};
+use crate::oauth::OAuthSettings;
 use crate::ratelimit::RateLimits;
 use kletka_types::QuotaInfo;
 
@@ -98,6 +99,46 @@ pub fn parse_email_list(raw: &str) -> Vec<String> {
         .collect()
 }
 
+#[derive(Debug, Clone)]
+pub struct AuthSettings {
+    pub password: bool,
+    pub oauth: OAuthSettings,
+}
+
+impl Default for AuthSettings {
+    fn default() -> Self {
+        Self {
+            password: true,
+            oauth: OAuthSettings::default(),
+        }
+    }
+}
+
+impl AuthSettings {
+    pub fn from_env() -> Self {
+        Self {
+            password: kletka_types::env_bool("KLETKA_AUTH_PASSWORD", true),
+            oauth: OAuthSettings::from_env(),
+        }
+    }
+
+    pub fn validate(&self) -> Result<(), String> {
+        if !self.password && !self.oauth.has_any() {
+            return Err(
+                "KLETKA_AUTH_PASSWORD=false requires at least one OAuth provider; \
+                 set KLETKA_OAUTH_GITHUB_CLIENT_ID/SECRET, \
+                 KLETKA_OAUTH_GITLAB_CLIENT_ID/SECRET, or KLETKA_OAUTH_STEAM_ENABLED=true"
+                    .to_string(),
+            );
+        }
+        Ok(())
+    }
+
+    pub fn oauth_enabled(&self) -> Vec<crate::oauth::ProviderId> {
+        self.oauth.enabled()
+    }
+}
+
 #[derive(Clone)]
 pub struct AppState {
     pub db: sqlx::AnyPool,
@@ -105,6 +146,7 @@ pub struct AppState {
     pub provisioner: Arc<K8sProvisioner>,
     pub rate_limits: RateLimits,
     pub namespaces: Arc<NamespaceSettings>,
+    pub auth: Arc<AuthSettings>,
 }
 
 impl AppState {
@@ -114,6 +156,7 @@ impl AppState {
         admin_token: String,
         rate_limits: RateLimits,
         namespaces: NamespaceSettings,
+        auth: AuthSettings,
     ) -> Self {
         Self {
             db,
@@ -121,6 +164,7 @@ impl AppState {
             provisioner,
             rate_limits,
             namespaces: Arc::new(namespaces),
+            auth: Arc::new(auth),
         }
     }
 }
@@ -146,6 +190,10 @@ impl AppState {
             provisioner: Arc::new(crate::k8s::K8sProvisioner::for_tests(config)),
             rate_limits,
             namespaces: Arc::new(NamespaceSettings::default()),
+            auth: Arc::new(AuthSettings {
+                password: true,
+                oauth: OAuthSettings::default(),
+            }),
         }
     }
 }
@@ -158,6 +206,7 @@ pub struct Config {
     pub k8s: K8sConfig,
     pub rate_limits: RateLimits,
     pub namespaces: NamespaceSettings,
+    pub auth: AuthSettings,
 }
 
 impl Config {
@@ -174,6 +223,7 @@ impl Config {
             k8s: K8sConfig::from_env(),
             rate_limits: RateLimits::from_env(),
             namespaces: NamespaceSettings::from_env(),
+            auth: AuthSettings::from_env(),
         }
     }
 }

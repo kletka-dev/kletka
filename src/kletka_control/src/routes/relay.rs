@@ -768,6 +768,7 @@ mod tests {
             "test-admin".to_string(),
             crate::ratelimit::RateLimits::disabled(),
             Default::default(),
+            Default::default(),
         );
         let app = crate::router(state);
 

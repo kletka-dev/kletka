@@ -96,7 +96,10 @@ fn is_exempt(path: &str) -> bool {
 
 fn is_auth(path: &str) -> bool {
     let path = path.split('?').next().unwrap_or(path);
-    path.starts_with("/v1/auth/") || path == "/login" || path == "/register"
+    path.starts_with("/v1/auth/")
+        || path == "/login"
+        || path == "/register"
+        || path.starts_with("/login/oauth/")
 }
 
 pub fn client_ip(parts: &Parts) -> IpAddr {
