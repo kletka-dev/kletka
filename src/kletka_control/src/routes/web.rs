@@ -18,23 +18,63 @@ struct VmView {
     name: String,
     image: String,
     vcpu: usize,
-    memory_mib: usize,
-    disk_mib: usize,
     status: String,
     node: Option<String>,
+    initial: String,
+    avatar_bg: String,
+    avatar_border: String,
+    avatar_fg: String,
+    memory_display: String,
+    disk_display: String,
+}
+
+fn mib_display(mib: usize) -> String {
+    if mib >= 1024 && mib.is_multiple_of(1024) {
+        format!("{} GB", mib / 1024)
+    } else {
+        format!("{mib} MiB")
+    }
+}
+
+fn avatar_palette(name: &str) -> (String, String, String) {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    const HUES: [u16; 8] = [150, 210, 260, 25, 330, 185, 90, 45];
+    let mut hasher = DefaultHasher::new();
+    name.hash(&mut hasher);
+    let hue = HUES[(hasher.finish() % HUES.len() as u64) as usize];
+    (
+        format!("hsl({hue} 45% 14%)"),
+        format!("hsl({hue} 40% 28%)"),
+        format!("hsl({hue} 75% 68%)"),
+    )
 }
 
 impl From<&kletka_types::Vm> for VmView {
     fn from(vm: &kletka_types::Vm) -> Self {
+        let (avatar_bg, avatar_border, avatar_fg) = avatar_palette(&vm.name);
         Self {
             id: vm.id.to_string(),
             name: vm.name.clone(),
             image: vm.image.clone(),
             vcpu: vm.vcpu,
-            memory_mib: vm.memory_mib,
-            disk_mib: vm.disk_mib,
             status: vm.status.as_str().to_string(),
             node: vm.assigned_node.clone(),
+            initial: vm
+                .name
+                .chars()
+                .next()
+                .map(|c| c.to_uppercase().to_string())
+                .unwrap_or_else(|| "?".into()),
+            avatar_bg,
+            avatar_border,
+            avatar_fg,
+            memory_display: mib_display(vm.memory_mib),
+            disk_display: if vm.disk_mib == 0 {
+                "—".into()
+            } else {
+                mib_display(vm.disk_mib)
+            },
         }
     }
 }
@@ -80,6 +120,23 @@ struct VmsPage {
     vms: Vec<VmView>,
     error: Option<String>,
     usage: Option<String>,
+    running_count: usize,
+    pending_count: usize,
+    failed_count: usize,
+    stopped_count: usize,
+}
+
+fn status_counts(vms: &[VmView]) -> (usize, usize, usize, usize) {
+    let mut counts = (0, 0, 0, 0);
+    for vm in vms {
+        match vm.status.as_str() {
+            "running" => counts.0 += 1,
+            "pending" => counts.1 += 1,
+            "failed" => counts.2 += 1,
+            _ => counts.3 += 1,
+        }
+    }
+    counts
 }
 
 #[derive(Template)]
@@ -91,7 +148,7 @@ struct VmsTable {
 #[derive(Template)]
 #[template(path = "vm_detail.html")]
 struct VmDetailPage {
-    email: String,
+    nav: Nav,
     namespace: String,
     vm: VmView,
     error: Option<String>,
@@ -121,7 +178,7 @@ impl From<&kletka_types::AuditEvent> for ActivityRow {
 #[derive(Template)]
 #[template(path = "terminal.html")]
 struct TerminalPage {
-    email: String,
+    nav: Nav,
     vm: VmView,
 }
 
@@ -135,7 +192,6 @@ pub(crate) struct NsOption {
 pub(crate) struct Nav {
     pub email: String,
     pub namespace: String,
-    pub namespace_id: String,
     pub options: Vec<NsOption>,
     pub platform_admin: bool,
 }
@@ -164,7 +220,6 @@ pub(crate) async fn nav_for(state: &AppState, user: &UserContext) -> Nav {
     Nav {
         email: user.email.clone(),
         namespace: user.ns.name.clone(),
-        namespace_id: user.ns.id.to_string(),
         options,
         platform_admin: user.platform_admin,
     }
@@ -236,11 +291,16 @@ async fn vms_page_error(
     message: String,
 ) -> Response {
     let vms = list_own(state, user).await;
+    let (running_count, pending_count, failed_count, stopped_count) = status_counts(&vms);
     render(VmsPage {
         nav: nav_for(state, user).await,
         vms,
         error: Some(message),
         usage: usage_line(state, user).await,
+        running_count,
+        pending_count,
+        failed_count,
+        stopped_count,
     })
 }
 
@@ -405,11 +465,16 @@ pub async fn vms_page(State(state): State<AppState>, headers: HeaderMap) -> Resp
     };
     let usage = usage_line(&state, &user).await;
     let vms = list_own(&state, &user).await;
+    let (running_count, pending_count, failed_count, stopped_count) = status_counts(&vms);
     render(VmsPage {
         nav: nav_for(&state, &user).await,
         vms,
         error: None,
         usage,
+        running_count,
+        pending_count,
+        failed_count,
+        stopped_count,
     })
 }
 
@@ -496,7 +561,7 @@ pub async fn vm_detail(
         None => Vec::new(),
     };
     render(VmDetailPage {
-        email: user.email,
+        nav: nav_for(&state, &user).await,
         namespace: namespace.map(|ns| ns.name).unwrap_or_default(),
         vm,
         error: None,
@@ -601,7 +666,7 @@ pub async fn vm_terminal(
         Err(resp) => return *resp,
     };
     render(TerminalPage {
-        email: user.email,
+        nav: nav_for(&state, &user).await,
         vm,
     })
 }

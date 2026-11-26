@@ -1,136 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kletka — Machines</title>
-<script src="/assets/tailwind.js"></script>
+{% let page_title = "Your Machines" %}
+{% include "_head.html" %}
 <script src="/assets/htmx.min.js"></script>
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100">
+<body class="min-h-screen bg-[#05080a] font-mono text-slate-200 antialiased">
+{% let active = "vms" %}
 {% include "_nav.html" %}
-<main class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
+<main class="mx-auto max-w-[1180px] px-4 py-8 sm:px-8">
   {% if error.is_some() %}
-  <div class="rounded-lg border border-red-900/70 bg-red-950/50 px-4 py-3 text-sm text-red-300">{{ error.as_deref().unwrap_or("") }}</div>
+  <div class="mb-6 rounded-md border border-[#7f2b2f] bg-[#150a0c] px-4 py-3 text-sm text-[#ff8a8d]">{{ error.as_deref().unwrap_or("") }}</div>
   {% endif %}
 
-  <section class="flex flex-wrap items-end justify-between gap-4">
+  <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <p class="mb-1 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">{{ nav.namespace }}</p>
-      <h1 class="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Machines</h1>
+      <h1 class="text-2xl font-bold tracking-tight text-white">Your Machines</h1>
+      <p class="mt-1 text-sm text-slate-500">A fleet of little machines, ready when you are.</p>
     </div>
-    <button id="create-open" type="button" class="inline-flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-950/30 transition hover:bg-red-400">
-      <span aria-hidden="true">+</span> Create machine
+    <button id="create-open" type="button" class="btn btn-danger">
+      <span aria-hidden="true" class="text-base leading-none">+</span> Create VM
     </button>
-  </section>
+  </div>
 
-  <section class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/70">
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 px-4 py-4 sm:px-5">
-      <div>
-        <h2 class="font-medium text-white">Your machines</h2>
-        <p class="mt-1 text-xs text-slate-500">
-          <a class="text-slate-400 hover:text-white" href="/namespaces/{{ nav.namespace_id }}">{{ nav.namespace }}</a>
-          {% if usage.is_some() %}<span class="mx-1.5 text-slate-700">·</span>{{ usage.as_deref().unwrap_or("") }}{% endif %}
-        </p>
-      </div>
-      <button class="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 transition hover:border-slate-500 hover:text-white" hx-get="/vms/table" hx-target="#vm-rows" hx-swap="innerHTML">Refresh</button>
+  <div class="mt-7 flex flex-wrap items-center gap-3">
+    <div class="relative w-full max-w-sm">
+      <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="vm-search" type="search" placeholder="Search machines…" autocomplete="off" class="field pl-9">
     </div>
+    {% if usage.is_some() %}<span class="ml-auto text-xs text-slate-500">{{ usage.as_deref().unwrap_or("") }}</span>{% endif %}
+  </div>
+
+  <div class="mt-3 overflow-hidden rounded-xl border border-[#1c2429] bg-[#0b0f12]">
     <div class="overflow-x-auto">
-      <table class="w-full min-w-[760px] text-left text-sm">
-        <thead class="bg-slate-950/60 text-[11px] uppercase tracking-wider text-slate-500">
-          <tr>
-            <th class="px-5 py-3 font-medium">Machine</th>
-            <th class="px-3 py-3 font-medium">Status</th>
-            <th class="px-3 py-3 font-medium">Image</th>
-            <th class="px-3 py-3 font-medium">vCPU</th>
-            <th class="px-3 py-3 font-medium">Memory</th>
-            <th class="px-3 py-3 font-medium">Disk</th>
-            <th class="px-3 py-3 font-medium">Node</th>
-            <th class="px-5 py-3 text-right font-medium">Actions</th>
+      <table class="w-full min-w-[760px] text-sm">
+        <thead>
+          <tr class="border-b border-[#1c2429] bg-[#080c0f] text-[10px] uppercase tracking-[0.14em] text-slate-500">
+            <th class="px-4 py-3 text-left font-medium">Name</th>
+            <th class="px-3 py-3 text-left font-medium">Status</th>
+            <th class="px-3 py-3 text-left font-medium">CPU</th>
+            <th class="px-3 py-3 text-left font-medium">Mem</th>
+            <th class="px-3 py-3 text-left font-medium">Disk</th>
+            <th class="px-3 py-3 text-left font-medium">Node</th>
+            <th class="px-4 py-3 text-right font-medium">Actions</th>
           </tr>
         </thead>
-        <tbody id="vm-rows" class="divide-y divide-slate-800" hx-get="/vms/table" hx-trigger="every 5s" hx-swap="innerHTML">
+        <tbody id="vm-rows" class="divide-y divide-[#141b21]" hx-get="/vms/table" hx-trigger="every 5s" hx-swap="innerHTML">
           {% for vm in vms %}
-          <tr class="transition hover:bg-slate-800/40">
-            <td class="px-5 py-4">
-              <a class="font-medium text-slate-100 hover:text-red-300" href="/vms/{{ vm.id }}">{{ vm.name }}</a>
-              <div class="mt-1 font-mono text-[11px] text-slate-500">{{ vm.id }}</div>
-            </td>
-            <td class="px-3 py-4">
-              {% if vm.status == "running" %}
-              <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs text-emerald-300"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>{{ vm.status }}</span>
-              {% else if vm.status == "pending" %}
-              <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-400/10 px-2.5 py-1 text-xs text-amber-300"><span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span>{{ vm.status }}</span>
-              {% else %}
-              <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-700/70 px-2.5 py-1 text-xs text-slate-300"><span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>{{ vm.status }}</span>
-              {% endif %}
-            </td>
-            <td class="px-3 py-4 text-slate-400">{{ vm.image }}</td>
-            <td class="px-3 py-4 text-slate-300">{{ vm.vcpu }}</td>
-            <td class="px-3 py-4 text-slate-300">{{ vm.memory_mib }} MiB</td>
-            <td class="px-3 py-4 text-slate-300">{% if vm.disk_mib == 0 %}—{% else %}{{ vm.disk_mib }} MiB{% endif %}</td>
-            <td class="px-3 py-4 text-slate-400">{% if vm.node.is_some() %}{{ vm.node.as_deref().unwrap_or("") }}{% else %}—{% endif %}</td>
-            <td class="px-5 py-4">
-              <div class="flex justify-end gap-2">
-                <a class="rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:border-slate-500 hover:text-white" href="/vms/{{ vm.id }}/terminal">Terminal</a>
-                {% if vm.status == "running" %}
-                <form method="post" action="/vms/{{ vm.id }}/stop"><button class="rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:border-slate-500 hover:text-white" type="submit">Stop</button></form>
-                {% else %}
-                <form method="post" action="/vms/{{ vm.id }}/start"><button class="rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:border-slate-500 hover:text-white" type="submit">Start</button></form>
-                {% endif %}
-                <form method="post" action="/vms/{{ vm.id }}/delete" onsubmit="return confirm('Destroy {{ vm.name }}?')"><button class="rounded-md border border-red-900/70 px-2.5 py-1.5 text-xs text-red-300 hover:border-red-500 hover:bg-red-950/40" type="submit">Delete</button></form>
-              </div>
-            </td>
-          </tr>
+          {% include "vm_row.html" %}
           {% endfor %}
         </tbody>
       </table>
     </div>
-    {% if vms.is_empty() %}
-    <div class="px-5 py-12 text-center">
-      <div class="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl border border-slate-700 bg-slate-800 text-xl text-slate-400">▦</div>
-      <p class="font-medium text-slate-200">No machines yet</p>
-      <p class="mt-1 text-sm text-slate-500">Create your first machine to get started.</p>
+    <div class="flex flex-wrap items-center justify-between gap-2 border-t border-[#1c2429] px-4 py-3 text-xs text-slate-500">
+      <span>{{ vms.len() }} machines</span>
+      <span class="flex flex-wrap gap-4">
+        {% if running_count > 0 %}<span class="text-emerald-400">● {{ running_count }} running</span>{% endif %}
+        {% if pending_count > 0 %}<span class="text-amber-400">● {{ pending_count }} pending</span>{% endif %}
+        {% if failed_count > 0 %}<span class="text-red-400">● {{ failed_count }} failed</span>{% endif %}
+        {% if stopped_count > 0 %}<span class="text-slate-400">● {{ stopped_count }} stopped</span>{% endif %}
+      </span>
     </div>
-    {% endif %}
-  </section>
+  </div>
 
-  <dialog id="create-dialog" data-open="{% if error.is_some() %}true{% else %}false{% endif %}" aria-labelledby="create-title" class="m-auto w-[calc(100%-2rem)] max-w-2xl rounded-xl border border-slate-700 bg-slate-900 p-0 text-slate-100 shadow-2xl backdrop:bg-black/70 backdrop:backdrop-blur-sm">
-    <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4">
-      <h2 id="create-title" class="font-medium text-white">Create VM in {{ nav.namespace }}</h2>
-      <form method="dialog"><button aria-label="Close" class="grid h-8 w-8 place-items-center rounded-md text-lg text-slate-400 hover:bg-slate-800 hover:text-white">×</button></form>
+  {% if vms.is_empty() %}
+  <div class="mt-3 rounded-xl border border-dashed border-[#1c2429] px-6 py-14 text-center">
+    <div class="flavor mx-auto aspect-square w-24 rounded-xl border border-[#1c2429]">
+      <img src="/assets/flavor/empty.png" alt="" onerror="this.remove()">
+    </div>
+    <p class="mt-4 text-sm font-medium text-slate-300">No machines yet</p>
+    <p class="mt-1 text-xs text-slate-600">Spin one up with Create VM.</p>
+  </div>
+  {% endif %}
+
+  <dialog id="create-dialog" data-open="{% if error.is_some() %}true{% else %}false{% endif %}" aria-labelledby="create-title" class="m-auto w-[calc(100%-2rem)] max-w-lg rounded-xl border border-[#1c2429] bg-[#0b0f12] p-0 text-slate-200 shadow-2xl shadow-black/50 backdrop:bg-black/70 backdrop:backdrop-blur-sm">
+    <div class="flex items-center justify-between border-b border-[#1c2429] px-5 py-4">
+      <h2 id="create-title" class="text-sm font-medium text-white">Create VM in {{ nav.namespace }}</h2>
+      <button type="button" data-close aria-label="Close" class="grid h-7 w-7 place-items-center rounded-md text-base text-slate-500 hover:bg-[#141c23] hover:text-white">×</button>
     </div>
     <form method="post" action="/vms" class="grid gap-4 p-5 sm:grid-cols-2">
-      <div>
-        <label for="vm-name" class="mb-1.5 block text-xs font-medium text-slate-400">Name</label>
-        <input id="vm-name" name="name" placeholder="machine-name" maxlength="32" pattern="[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?" title="lowercase letters, digits and dashes; up to 32 characters" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-red-500 focus:outline-none">
+      <div class="sm:col-span-2">
+        <label class="mb-1.5 block text-xs text-slate-500" for="vm-name">Name</label>
+        <input id="vm-name" name="name" placeholder="machine-name" maxlength="32" pattern="[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?" title="lowercase letters, digits and dashes; up to 32 characters" class="field">
       </div>
       <div>
-        <label for="vm-image" class="mb-1.5 block text-xs font-medium text-slate-400">Image</label>
-        <input id="vm-image" name="image" value="default" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none">
+        <label class="mb-1.5 block text-xs text-slate-500" for="vm-image">Image</label>
+        <input id="vm-image" name="image" value="default" class="field">
       </div>
       <div>
-        <label for="vm-vcpu" class="mb-1.5 block text-xs font-medium text-slate-400">vCPU</label>
-        <input id="vm-vcpu" name="vcpu" value="2" inputmode="numeric" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none">
+        <label class="mb-1.5 block text-xs text-slate-500" for="vm-vcpu">vCPU</label>
+        <input id="vm-vcpu" name="vcpu" value="2" inputmode="numeric" class="field">
       </div>
       <div>
-        <label for="vm-memory" class="mb-1.5 block text-xs font-medium text-slate-400">Memory (MiB)</label>
-        <input id="vm-memory" name="memory_mib" value="1024" inputmode="numeric" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none">
+        <label class="mb-1.5 block text-xs text-slate-500" for="vm-memory">Memory (MiB)</label>
+        <input id="vm-memory" name="memory_mib" value="1024" inputmode="numeric" class="field">
       </div>
       <div>
-        <label for="vm-disk" class="mb-1.5 block text-xs font-medium text-slate-400">Disk (MiB)</label>
-        <input id="vm-disk" name="disk_mib" placeholder="Image default" inputmode="numeric" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-red-500 focus:outline-none">
+        <label class="mb-1.5 block text-xs text-slate-500" for="vm-disk">Disk (MiB)</label>
+        <input id="vm-disk" name="disk_mib" placeholder="image default" inputmode="numeric" class="field">
       </div>
       <details class="sm:col-span-2">
-        <summary class="cursor-pointer text-sm text-slate-400 hover:text-white">Advanced options</summary>
+        <summary class="cursor-pointer text-xs text-slate-500 hover:text-slate-300">Advanced options</summary>
         <div class="mt-4">
-          <label for="wireguard-config" class="mb-1.5 block text-xs font-medium text-slate-400">WireGuard configuration</label>
-          <textarea id="wireguard-config" name="wireguard_config" rows="5" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 font-mono text-xs text-white placeholder:text-slate-600 focus:border-red-500 focus:outline-none" placeholder="[Interface]&#10;PrivateKey = ...&#10;Address = ...&#10;&#10;[Peer]&#10;PublicKey = ...&#10;Endpoint = host:port&#10;AllowedIPs = 0.0.0.0/0, ::/0"></textarea>
+          <label class="mb-1.5 block text-xs text-slate-500" for="wireguard-config">WireGuard configuration</label>
+          <textarea id="wireguard-config" name="wireguard_config" rows="5" class="field" placeholder="[Interface]&#10;PrivateKey = ...&#10;Address = ...&#10;&#10;[Peer]&#10;PublicKey = ...&#10;Endpoint = host:port&#10;AllowedIPs = 0.0.0.0/0, ::/0"></textarea>
         </div>
       </details>
-      <div class="flex justify-end gap-2 border-t border-slate-800 pt-4 sm:col-span-2">
-        <button type="button" id="create-cancel" class="rounded-lg border border-slate-700 px-4 py-2.5 text-sm text-slate-300 hover:border-slate-500 hover:text-white">Cancel</button>
-        <button type="submit" class="rounded-lg bg-red-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-400">Create VM</button>
+      <div class="flex justify-end gap-2 border-t border-[#1c2429] pt-4 sm:col-span-2">
+        <button type="button" data-close class="btn btn-ghost">Cancel</button>
+        <button type="submit" class="btn btn-danger">Create VM</button>
       </div>
     </form>
   </dialog>
@@ -139,7 +117,17 @@
 const createDialog = document.getElementById('create-dialog');
 if (createDialog.dataset.open === 'true') createDialog.showModal();
 document.getElementById('create-open').addEventListener('click', () => createDialog.showModal());
-document.getElementById('create-cancel').addEventListener('click', () => createDialog.close());
+createDialog.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', () => createDialog.close()));
+
+const search = document.getElementById('vm-search');
+const applyFilter = () => {
+  const q = search.value.trim().toLowerCase();
+  document.querySelectorAll('#vm-rows tr').forEach((tr) => {
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+};
+search.addEventListener('input', applyFilter);
+document.body.addEventListener('htmx:afterSwap', applyFilter);
 </script>
   </div>
 </div>

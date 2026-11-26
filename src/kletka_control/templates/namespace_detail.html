@@ -3,31 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>kletka — {{ ns.name }}</title>
-<script src="/assets/tailwind.js"></script>
+{% let page_title = ns.name %}
+{% include "_head.html" %}
 <script src="/assets/htmx.min.js"></script>
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100">
+<body class="min-h-screen bg-[#05080a] font-mono text-slate-200 antialiased">
+{% let active = "namespaces" %}
 {% include "_nav.html" %}
 <main class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
   {% if let Some(error) = error %}
-  <div class="rounded-lg border border-red-900/70 bg-red-950/50 px-4 py-3 text-sm text-red-300">{{ error }}</div>
+  <div class="rounded-lg border border-[#7f2b2f] bg-[#150a0c] px-4 py-3 text-sm text-[#ff8a8d]">{{ error }}</div>
   {% endif %}
   {% if let Some(notice) = notice %}
-  <div class="rounded-lg border border-emerald-900/70 bg-emerald-950/40 px-4 py-3 text-sm text-emerald-300">{{ notice }}</div>
+  <div class="rounded-lg border border-[#1f5c45] bg-[#0a1410] px-4 py-3 text-sm text-[#4ade80]">{{ notice }}</div>
   {% endif %}
 
-  <section class="rounded-xl border border-slate-800 bg-slate-900/70 p-5">
+  <section class="rounded-xl border border-[#1c2429] bg-[#0b0f12] p-5">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex items-center gap-2">
         <a href="/namespaces" class="underline text-sm">← Namespaces</a>
         <h1 class="font-bold text-lg">{{ ns.name }}</h1>
-        {% if ns.personal %}<span class="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs text-slate-300">personal</span>{% endif %}
-        <span class="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs text-slate-300">{{ ns.role }}</span>
+        {% if ns.personal %}<span class="rounded-full border border-[#1c2429] bg-[#141c23] px-2.5 py-1 text-xs text-slate-300">personal</span>{% endif %}
+        <span class="rounded-full border border-[#1c2429] bg-[#141c23] px-2.5 py-1 text-xs text-slate-300">{{ ns.role }}</span>
       </div>
       <form method="post" action="/ns/switch">
         <input type="hidden" name="namespace" value="{{ ns.id }}">
-        <button class="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-400" type="submit">Open VMs</button>
+        <button class="btn btn-danger" type="submit">Open VMs</button>
       </form>
     </div>
     <dl class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mt-4">
@@ -38,11 +39,11 @@
     </dl>
   </section>
 
-  <section class="rounded-xl border border-slate-800 bg-slate-900/70 p-5">
+  <section class="rounded-xl border border-[#1c2429] bg-[#0b0f12] p-5">
     <h2 class="font-semibold mb-3">Members</h2>
     <table class="w-full text-sm">
       <thead>
-        <tr class="border-b border-slate-800 text-left text-xs uppercase tracking-wider text-slate-500">
+        <tr class="border-b border-[#1c2429] text-left text-xs uppercase tracking-wider text-slate-500">
           <th class="py-1 pr-2">Email</th>
           <th class="py-1 pr-2">Role</th>
           <th class="py-1 pr-2">Added</th>
@@ -51,12 +52,12 @@
       </thead>
       <tbody>
         {% for m in members %}
-        <tr class="border-b border-slate-800 text-slate-300 last:border-0">
+        <tr class="border-b border-[#1c2429] text-slate-300 last:border-0">
           <td class="py-1 pr-2">{{ m.email }}{% if m.is_self %} <span class="text-slate-400">(you)</span>{% endif %}</td>
           <td class="py-1 pr-2">
             {% if m.can_edit %}
             <form method="post" action="/namespaces/{{ ns.id }}/members/{{ m.user_id }}/role" class="inline">
-              <select name="role" class="rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-sm text-slate-100 focus:border-red-500 focus:outline-none" style="color-scheme: dark" onchange="this.form.submit()">
+              <select name="role" class="field w-auto py-1 text-xs" onchange="this.form.submit()">
                 {% for r in grantable %}
                 <option value="{{ r }}"{% if r == &m.role %} selected{% endif %}>{{ r }}</option>
                 {% endfor %}
@@ -69,7 +70,7 @@
           <td class="py-1 whitespace-nowrap">
             {% if m.can_remove %}
             <form class="inline" method="post" action="/namespaces/{{ ns.id }}/members/{{ m.user_id }}/remove" onsubmit="return confirm('{% if m.is_self %}Leave {{ ns.name }}{% else %}Remove {{ m.email }} from {{ ns.name }}{% endif %}?')">
-              <button class="underline text-red-600" type="submit">{% if m.is_self %}Leave{% else %}Remove{% endif %}</button>
+              <button class="underline text-[#ff6b6e]" type="submit">{% if m.is_self %}Leave{% else %}Remove{% endif %}</button>
             </form>
             {% endif %}
           </td>
@@ -81,15 +82,15 @@
     <form method="post" action="/namespaces/{{ ns.id }}/members" class="flex flex-wrap gap-2 items-end mt-4">
       <div>
         <label class="mb-1 block text-xs text-slate-400" for="member-email">Add member by email</label>
-        <input id="member-email" name="email" type="email" required class="w-64 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-red-500 focus:outline-none" placeholder="teammate@example.com">
+        <input id="member-email" name="email" type="email" required class="field w-64" placeholder="teammate@example.com">
       </div>
       <div>
         <label class="mb-1 block text-xs text-slate-400" for="member-role">Role</label>
-        <select id="member-role" name="role" class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-red-500 focus:outline-none" style="color-scheme: dark">
+        <select id="member-role" name="role" class="field w-auto">
           {% for r in grantable %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
         </select>
       </div>
-      <button type="submit" class="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-400">Add</button>
+      <button type="submit" class="btn btn-danger">Add</button>
     </form>
     <p class="mt-2 text-xs text-slate-400">The person needs a kletka account first.</p>
     {% endif %}
@@ -107,37 +108,37 @@
   </section>
 
   {% if is_platform_admin %}
-  <section class="rounded-xl border border-slate-800 bg-slate-900/70 p-5">
+  <section class="rounded-xl border border-[#1c2429] bg-[#0b0f12] p-5">
     <h2 class="mb-1 font-semibold">Quota <span class="text-xs font-normal text-slate-400">platform admin</span></h2>
     <p class="mb-3 text-xs text-slate-400">{% if ns.personal %}Personal namespaces use their owner's account quota.{% else %}Reset restores the configured defaults for new namespaces.{% endif %}</p>
     <form method="post" action="/namespaces/{{ ns.id }}/quota" class="flex flex-wrap gap-2 items-end">
       <div>
         <label class="mb-1 block text-xs text-slate-400">Max VMs</label>
-        <input name="max_vms" value="{{ quotas.max_vms }}" inputmode="numeric" class="w-20 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-red-500 focus:outline-none">
+        <input name="max_vms" value="{{ quotas.max_vms }}" inputmode="numeric" class="field w-20">
       </div>
       <div>
         <label class="mb-1 block text-xs text-slate-400">Max vCPU</label>
-        <input name="max_vcpu" value="{{ quotas.max_vcpu }}" inputmode="numeric" class="w-20 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-red-500 focus:outline-none">
+        <input name="max_vcpu" value="{{ quotas.max_vcpu }}" inputmode="numeric" class="field w-20">
       </div>
       <div>
         <label class="mb-1 block text-xs text-slate-400">Max memory MiB</label>
-        <input name="max_mem_mib" value="{{ quotas.max_mem_mib }}" inputmode="numeric" class="w-28 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-red-500 focus:outline-none">
+        <input name="max_mem_mib" value="{{ quotas.max_mem_mib }}" inputmode="numeric" class="field w-28">
       </div>
-      <button type="submit" class="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-400">Save quota</button>
-      <button type="submit" name="reset" value="1" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-slate-500 hover:text-white">Reset to defaults</button>
+      <button type="submit" class="btn btn-danger">Save quota</button>
+      <button type="submit" name="reset" value="1" class="btn btn-ghost">Reset to defaults</button>
     </form>
   </section>
   {% endif %}
 
   {% if can_manage %}
-  <section class="rounded-xl border border-slate-800 bg-slate-900/70 p-5">
+  <section class="rounded-xl border border-[#1c2429] bg-[#0b0f12] p-5">
     <h2 class="font-semibold mb-3">Recent activity</h2>
     {% if activity.is_empty() %}
     <p class="text-sm text-slate-400">Nothing recorded yet.</p>
     {% else %}
     <table class="w-full text-sm">
       <thead>
-        <tr class="border-b border-slate-800 text-left text-xs uppercase tracking-wider text-slate-500">
+        <tr class="border-b border-[#1c2429] text-left text-xs uppercase tracking-wider text-slate-500">
           <th class="py-1 pr-2">When</th>
           <th class="py-1 pr-2">Action</th>
           <th class="py-1 pr-2">Outcome</th>
@@ -147,7 +148,7 @@
       </thead>
       <tbody>
         {% for row in activity %}
-        <tr class="border-b border-slate-800 text-slate-300 last:border-0">
+        <tr class="border-b border-[#1c2429] text-slate-300 last:border-0">
           <td class="py-1 pr-2 whitespace-nowrap">{{ row.time }}</td>
           <td class="py-1 pr-2 font-mono text-xs">{{ row.action }}</td>
           <td class="py-1 pr-2">{{ row.outcome }}</td>
@@ -162,18 +163,18 @@
   {% endif %}
 
   {% if is_owner %}
-  <section class="space-y-4 rounded-xl border border-slate-800 bg-slate-900/70 p-5">
+  <section class="space-y-4 rounded-xl border border-[#1c2429] bg-[#0b0f12] p-5">
     <h2 class="font-semibold">Settings</h2>
     <form method="post" action="/namespaces/{{ ns.id }}/rename" class="flex flex-wrap gap-2 items-end">
       <div>
         <label class="mb-1 block text-xs text-slate-400" for="rename">Rename</label>
-        <input id="rename" name="name" value="{{ ns.name }}" required maxlength="32" pattern="[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?" class="w-48 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-red-500 focus:outline-none">
+        <input id="rename" name="name" value="{{ ns.name }}" required maxlength="32" pattern="[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?" class="field w-48">
       </div>
-      <button type="submit" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-slate-500 hover:text-white">Rename</button>
+      <button type="submit" class="btn btn-ghost">Rename</button>
     </form>
     {% if !ns.personal %}
     <form method="post" action="/namespaces/{{ ns.id }}/delete" onsubmit="return confirm('Delete namespace {{ ns.name }}? This cannot be undone.')">
-      <button type="submit" class="rounded-lg border border-red-900/70 px-4 py-2 text-sm text-red-300 hover:border-red-500">Delete namespace</button>
+      <button type="submit" class="btn btn-danger">Delete namespace</button>
       <span class="ml-2 text-xs text-slate-400">Destroy its VMs first.</span>
     </form>
     {% endif %}
