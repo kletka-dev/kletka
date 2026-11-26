@@ -29,10 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
         )
         .init();
-    tracing::info!(
-        version = option_env!("KLETKA_VERSION").unwrap_or("dev"),
-        "kletka-control starting"
-    );
+    tracing::info!(version = kletka_control::VERSION, "kletka-control starting");
 
     let cli = Cli::parse();
     let config = Config::from_env();

@@ -7,10 +7,15 @@ use clap_complete::Shell;
 
 mod commands;
 
+pub const VERSION: &str = match option_env!("KLETKA_VERSION") {
+    Some(version) => version,
+    None => env!("CARGO_PKG_VERSION"),
+};
+
 #[derive(Debug, Parser)]
 #[command(
     name = "kletka",
-    version,
+    version = VERSION,
     about = "Instant sandbox VMs on the kletka control plane",
     subcommand_required = true,
     arg_required_else_help = true

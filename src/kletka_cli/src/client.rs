@@ -3,7 +3,15 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 
 use kletka_types::{
-    AccountInfo, AuditEvent, CreateVmRequest, ImageInfo, SnapshotInfo, Vm, VmStatus, urlencode,
+    AccountInfo,
+    AuditEvent,
+    CreateVmRequest,
+    ImageInfo,
+    SnapshotInfo,
+    VersionInfo,
+    Vm,
+    VmStatus,
+    urlencode,
 };
 use reqwest::{Method, RequestBuilder, Response, StatusCode};
 use serde::de::DeserializeOwned;
@@ -15,6 +23,7 @@ const BOOT_TIMEOUT: Duration = Duration::from_secs(180);
 const CLONE_TIMEOUT: Duration = Duration::from_secs(900);
 const TEARDOWN_TIMEOUT: Duration = Duration::from_secs(60);
 const POLL_INTERVAL: Duration = Duration::from_millis(500);
+const VERSION_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Debug, Clone)]
 pub struct Client {
@@ -106,6 +115,15 @@ impl Client {
     pub async fn account(&self) -> CliResult<AccountInfo> {
         self.json(self.request(Method::GET, "/v1/auth/me"), "read your quota")
             .await
+    }
+
+    pub async fn version(&self) -> CliResult<VersionInfo> {
+        self.json(
+            self.request(Method::GET, "/v1/version")
+                .timeout(VERSION_TIMEOUT),
+            "read the control plane version",
+        )
+        .await
     }
 
     pub async fn create(&self, request: &CreateVmRequest) -> CliResult<Vm> {
@@ -713,6 +731,10 @@ mod tests {
                 }),
             )
             .route(
+                "/v1/version",
+                get(|| async { axum::Json(serde_json::json!({ "version": "v1.2.3" })) }),
+            )
+            .route(
                 "/v1/vms",
                 get({
                     let vms = vms.clone();
@@ -859,6 +881,12 @@ mod tests {
         assert_eq!(account.email, "fake@example.com");
         assert_eq!(account.quotas.max_vcpu, 8);
         assert_eq!(account.usage.vms, 1);
+    }
+
+    #[tokio::test]
+    async fn version_fetches_control_plane_version() {
+        let client = Client::new(serve_fake().await, "tok");
+        assert_eq!(client.version().await.unwrap().version, "v1.2.3");
     }
 
     #[tokio::test]

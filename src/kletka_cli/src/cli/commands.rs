@@ -5,7 +5,14 @@ use std::process::ExitCode;
 use kletka_types::SnapshotInfo;
 
 use super::{
-    Cli, Command, FileCommand, IdleTimeout, SnapshotCommand, VmStateFilter, format_duration,
+    Cli,
+    Command,
+    FileCommand,
+    IdleTimeout,
+    SnapshotCommand,
+    VERSION,
+    VmStateFilter,
+    format_duration,
 };
 use crate::client::{self, Client};
 use crate::error::{CliError, CliResult, ErrorKind, io_error};
@@ -55,6 +62,7 @@ pub(super) async fn dispatch(cli: &Cli) -> CliResult<ExitCode> {
         .with_namespace(config::namespace(cli.namespace.as_deref())),
         json: cli.json,
     };
+    ctx.warn_version_mismatch().await;
     match &cli.command {
         Command::List { state } => ctx.list(*state).await,
         Command::Create {
@@ -328,6 +336,51 @@ fn child_exit_code(code: i32) -> ExitCode {
     ExitCode::from(u8::try_from(code).unwrap_or(1))
 }
 
+fn version_mismatch(local: &str, remote: &str) -> Option<String> {
+    let (local_version, remote_version) = (parse_version(local), parse_version(remote));
+    let same = match (&local_version, &remote_version) {
+        (Some(left), Some(right)) => compare_versions(left, right).is_eq(),
+        _ => local == remote,
+    };
+    if same {
+        return None;
+    }
+    let hint = match (&local_version, &remote_version) {
+        (Some(left), Some(right)) if compare_versions(left, right).is_lt() => {
+            "this CLI is outdated; upgrade it to match the control plane"
+        }
+        (Some(_), Some(_)) => "the control plane is outdated; upgrade it to match this CLI",
+        _ => "upgrade the older of the two so both run the same version",
+    };
+    Some(format!(
+        "warning: CLI version {local} does not match control plane version {remote}\n  hint: \
+         {hint}"
+    ))
+}
+
+fn parse_version(version: &str) -> Option<Vec<u64>> {
+    version
+        .strip_prefix('v')
+        .unwrap_or(version)
+        .split('.')
+        .map(|part| part.parse().ok())
+        .collect()
+}
+
+fn compare_versions(local: &[u64], remote: &[u64]) -> std::cmp::Ordering {
+    let len = local.len().max(remote.len());
+    (0..len)
+        .map(|index| {
+            local
+                .get(index)
+                .copied()
+                .unwrap_or(0)
+                .cmp(&remote.get(index).copied().unwrap_or(0))
+        })
+        .find(|ordering| ordering.is_ne())
+        .unwrap_or(std::cmp::Ordering::Equal)
+}
+
 struct Ctx {
     client: Client,
     json: bool,
@@ -340,6 +393,18 @@ impl Ctx {
         }
         text();
         Ok(ExitCode::SUCCESS)
+    }
+
+    async fn warn_version_mismatch(&self) {
+        if self.json {
+            return;
+        }
+        let Ok(remote) = self.client.version().await else {
+            return;
+        };
+        if let Some(warning) = version_mismatch(VERSION, &remote.version) {
+            eprintln!("{warning}");
+        }
     }
 
     async fn resolve(&self, name: Option<String>) -> CliResult<Vm> {
@@ -917,6 +982,29 @@ mod tests {
         assert!(table.contains("clean"));
         assert!(table.contains("3M"), "{table}");
         assert!(table.contains("2023-11-14 22:13 UTC"), "{table}");
+    }
+
+    #[test]
+    fn version_mismatch_warns_only_on_difference() {
+        assert!(version_mismatch("v0.1.0", "v0.1.0").is_none());
+        assert!(version_mismatch("0.1.0", "v0.1.0").is_none());
+        assert!(version_mismatch("v0.1", "v0.1.0").is_none());
+        assert!(version_mismatch("dev", "dev").is_none());
+
+        let outdated_cli = version_mismatch("v0.1.0", "v0.2.0").unwrap();
+        assert!(
+            outdated_cli.contains("this CLI is outdated"),
+            "{outdated_cli}"
+        );
+
+        let outdated_server = version_mismatch("v0.3.0", "v0.2.0").unwrap();
+        assert!(
+            outdated_server.contains("control plane is outdated"),
+            "{outdated_server}"
+        );
+
+        let incomparable = version_mismatch("dev", "v0.2.0").unwrap();
+        assert!(incomparable.contains("upgrade the older"), "{incomparable}");
     }
 
     #[test]

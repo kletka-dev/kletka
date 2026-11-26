@@ -23,6 +23,11 @@ use axum::routing::{get, patch, post, put};
 
 use crate::state::AppState;
 
+pub const VERSION: &str = match option_env!("KLETKA_VERSION") {
+    Some(version) => version,
+    None => "dev",
+};
+
 pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/", get(routes::web::index))
@@ -159,6 +164,7 @@ pub fn router(state: AppState) -> Router {
             "/v1/namespaces/{ns}/audit",
             get(routes::namespaces::audit_log),
         )
+        .route("/v1/version", get(routes::server::version))
         .route("/healthz", get(|| async { "ok" }))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),

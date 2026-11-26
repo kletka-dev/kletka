@@ -8,6 +8,11 @@ use time::Timestamp;
 pub const API_VERSION: &str = "v1";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VersionInfo {
+    pub version: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VmSpec {
     pub name: String,
     pub image: String,
