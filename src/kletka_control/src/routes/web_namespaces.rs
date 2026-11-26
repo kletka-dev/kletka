@@ -130,11 +130,7 @@ async fn namespaces_page(state: &AppState, user: &UserContext, error: Option<Str
     .ok();
     let (allowance_text, can_create, reason) = match allowance {
         Some(a) => match a.limit {
-            None => (
-                format!("you own {} · no limit", a.used),
-                true,
-                String::new(),
-            ),
+            None => (format!("{} (no limit)", a.used), true, String::new()),
             Some(0) => (
                 String::new(),
                 false,
@@ -143,7 +139,7 @@ async fn namespaces_page(state: &AppState, user: &UserContext, error: Option<Str
                     .to_string(),
             ),
             Some(limit) => (
-                format!("you own {} of {limit} allowed", a.used),
+                format!("{}/{limit}", a.used),
                 a.can_create(),
                 format!("You already own {limit} namespaces, the most your account allows."),
             ),

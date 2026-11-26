@@ -1,7 +1,7 @@
 <div class="flex min-h-screen flex-col md:flex-row">
   <aside class="flex shrink-0 flex-col border-b border-[#161d23] bg-[#070b0e] md:sticky md:top-0 md:h-screen md:w-64 md:border-b-0 md:border-r">
     <div class="flex items-center gap-3 px-5 py-5">
-      <svg class="h-6 w-6 shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+      <svg class="h-7 w-7 shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
         <path d="M4 20h16"/>
         <path d="M6 20v-8a6 6 0 0 1 12 0v8"/>
         <path d="M9.2 7.6V20"/>
@@ -13,35 +13,35 @@
     <nav class="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:overflow-visible md:pb-0">
       {% if active == "vms" %}
       <a href="/vms" class="flex shrink-0 items-center gap-2.5 rounded-md bg-[#10171d] px-3 py-2 text-sm text-slate-100">
-        <svg class="h-4 w-4 shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/><path d="M12 16v4"/></svg>
+        <svg class="h-[18px] w-[18px] shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/><path d="M12 16v4"/></svg>
         Machines
       </a>
       {% else %}
       <a href="/vms" class="flex shrink-0 items-center gap-2.5 rounded-md px-3 py-2 text-sm text-slate-500 transition-colors hover:bg-[#0d1419] hover:text-slate-200">
-        <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/><path d="M12 16v4"/></svg>
+        <svg class="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/><path d="M12 16v4"/></svg>
         Machines
       </a>
       {% endif %}
       {% if active == "namespaces" %}
       <a href="/namespaces" class="flex shrink-0 items-center gap-2.5 rounded-md bg-[#10171d] px-3 py-2 text-sm text-slate-100">
-        <svg class="h-4 w-4 shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+        <svg class="h-[18px] w-[18px] shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
         Namespaces
       </a>
       {% else %}
       <a href="/namespaces" class="flex shrink-0 items-center gap-2.5 rounded-md px-3 py-2 text-sm text-slate-500 transition-colors hover:bg-[#0d1419] hover:text-slate-200">
-        <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+        <svg class="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
         Namespaces
       </a>
       {% endif %}
       {% if nav.platform_admin %}
       {% if active == "admin" %}
       <a href="/admin" class="flex shrink-0 items-center gap-2.5 rounded-md bg-[#10171d] px-3 py-2 text-sm text-slate-100">
-        <svg class="h-4 w-4 shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v3"/><path d="M12 18.2v3"/><path d="M2.8 12h3"/><path d="M18.2 12h3"/><path d="M5.5 5.5l2.1 2.1"/><path d="M16.4 16.4l2.1 2.1"/><path d="M18.5 5.5l-2.1 2.1"/><path d="M7.6 16.4l-2.1 2.1"/></svg>
+        <svg class="h-[18px] w-[18px] shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v3"/><path d="M12 18.2v3"/><path d="M2.8 12h3"/><path d="M18.2 12h3"/><path d="M5.5 5.5l2.1 2.1"/><path d="M16.4 16.4l2.1 2.1"/><path d="M18.5 5.5l-2.1 2.1"/><path d="M7.6 16.4l-2.1 2.1"/></svg>
         Admin
       </a>
       {% else %}
       <a href="/admin" class="flex shrink-0 items-center gap-2.5 rounded-md px-3 py-2 text-sm text-slate-500 transition-colors hover:bg-[#0d1419] hover:text-slate-200">
-        <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v3"/><path d="M12 18.2v3"/><path d="M2.8 12h3"/><path d="M18.2 12h3"/><path d="M5.5 5.5l2.1 2.1"/><path d="M16.4 16.4l2.1 2.1"/><path d="M18.5 5.5l-2.1 2.1"/><path d="M7.6 16.4l-2.1 2.1"/></svg>
+        <svg class="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v3"/><path d="M12 18.2v3"/><path d="M2.8 12h3"/><path d="M18.2 12h3"/><path d="M5.5 5.5l2.1 2.1"/><path d="M16.4 16.4l2.1 2.1"/><path d="M18.5 5.5l-2.1 2.1"/><path d="M7.6 16.4l-2.1 2.1"/></svg>
         Admin
       </a>
       {% endif %}

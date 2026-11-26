@@ -200,6 +200,11 @@ async fn assets(axum::extract::Path(path): axum::extract::Path<String>) -> Respo
             include_bytes!("../assets/fonts/jetbrains-mono-latin-700-normal.woff2"),
         ),
         (
+            "panel.js",
+            "application/javascript",
+            include_bytes!("../assets/panel.js"),
+        ),
+        (
             "xterm.min.js",
             "application/javascript",
             include_bytes!("../assets/xterm.min.js"),

@@ -8,7 +8,7 @@
 <body class="flex min-h-screen flex-col items-center justify-center bg-[#05080a] px-4 py-10 font-mono text-slate-200 antialiased">
 <main class="w-full max-w-sm">
   <div class="mb-8 flex flex-col items-center gap-3 text-center">
-    <svg class="h-10 w-10 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+    <svg class="h-12 w-12 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
       <path d="M4 20h16"/>
       <path d="M6 20v-8a6 6 0 0 1 12 0v8"/>
       <path d="M9.2 7.6V20"/>
@@ -17,10 +17,9 @@
     </svg>
     <div>
       <p class="text-xl font-bold tracking-tight text-white">kletka</p>
-      <p class="mt-1 text-xs text-slate-500">Access. Control.</p>
     </div>
   </div>
-  <section class="rounded-xl border border-[#1c2429] bg-[#0b0f12] p-6">
+  <section class="rounded-xl border border-[#1c2429] bg-[#0b0f12] p-8">
     {% if error.is_some() %}
     <div class="mb-4 rounded-md border border-[#7f2b2f] bg-[#150a0c] px-3 py-2.5 text-sm text-[#ff8a8d]">{{ error.as_deref().unwrap_or("") }}</div>
     {% endif %}

@@ -8,7 +8,7 @@
 <body class="min-h-screen bg-[#05080a] font-mono text-slate-200 antialiased">
 {% let active = "namespaces" %}
 {% include "_nav.html" %}
-<main class="mx-auto max-w-[1180px] px-4 py-8 sm:px-8">
+<main class="mx-auto max-w-[1400px] px-4 py-10 sm:px-10">
   {% if let Some(error) = error %}
   <div class="mb-6 rounded-md border border-[#7f2b2f] bg-[#150a0c] px-4 py-3 text-sm text-[#ff8a8d]">{{ error }}</div>
   {% endif %}
@@ -16,7 +16,6 @@
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
       <h1 class="text-2xl font-bold tracking-tight text-white">Namespaces</h1>
-      <p class="mt-1 text-sm text-slate-500">Shared spaces for your machines.</p>
     </div>
     {% if can_create %}
     <button id="create-namespace-open" type="button" class="btn btn-danger">
@@ -31,7 +30,7 @@
       <span>{{ allowance }}</span>
     </div>
     <div class="overflow-x-auto">
-      <table class="w-full min-w-[600px] text-sm">
+      <table class="w-full min-w-[640px] text-sm">
         <thead>
           <tr class="border-b border-[#1c2429] bg-[#080c0f] text-[10px] uppercase tracking-[0.14em] text-slate-500">
             <th class="px-4 py-3 text-left font-medium">Name</th>
