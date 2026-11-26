@@ -1,0 +1,70 @@
+{{- if .Values.imageBuilder.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "kletka.builderName" . }}
+  namespace: {{ .Values.namespaces.imageBuilder }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+{{- include "kletka.imagePullSecrets" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "kletka.builderName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: [{{ include "kletka.guestImagesConfigMap" . | quote }}]
+    verbs: ["get", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "kletka.builderName" . }}-pins
+  namespace: {{ .Values.namespaces.vms }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims", "pods"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "kletka.builderName" . }}-pins
+  namespace: {{ .Values.namespaces.vms }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kletka.builderName" . }}
+    namespace: {{ .Values.namespaces.imageBuilder }}
+roleRef:
+  kind: Role
+  name: {{ include "kletka.builderName" . }}-pins
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "kletka.builderName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kletka.builderName" . }}
+    namespace: {{ .Values.namespaces.imageBuilder }}
+roleRef:
+  kind: Role
+  name: {{ include "kletka.builderName" . }}
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

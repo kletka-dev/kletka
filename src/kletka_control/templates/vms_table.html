@@ -1,0 +1,18 @@
+{% for vm in vms %}
+<tr class="border-b last:border-0">
+  <td class="py-1 pr-2"><a class="underline font-medium" href="/vms/{{ vm.id }}">{{ vm.name }}</a></td>
+  <td class="py-1 pr-2">{{ vm.status }}</td>
+  <td class="py-1 pr-2">{{ vm.image }}</td>
+  <td class="py-1 pr-2">{{ vm.vcpu }}</td>
+  <td class="py-1 pr-2">{{ vm.memory_mib }}M</td>
+  <td class="py-1 pr-2">{% if vm.disk_mib == 0 %}-{% else %}{{ vm.disk_mib }}M{% endif %}</td>
+  <td class="py-1 pr-2">{% if vm.node.is_some() %}{{ vm.node.as_deref().unwrap_or("") }}{% else %}-{% endif %}</td>
+  <td class="py-1 whitespace-nowrap">
+    <a class="underline mr-2" href="/vms/{{ vm.id }}/terminal">Terminal</a>
+    <form class="inline" method="post" action="/vms/{{ vm.id }}/start"><button class="underline mr-2" type="submit">Start</button></form>
+    <form class="inline" method="post" action="/vms/{{ vm.id }}/stop"><button class="underline mr-2" type="submit">Stop</button></form>
+    <form class="inline" method="post" action="/vms/{{ vm.id }}/clone" onsubmit="return confirm('Clone {{ vm.name }} (stopped VMs only)?')"><button class="underline mr-2" type="submit">Clone</button></form>
+    <form class="inline" method="post" action="/vms/{{ vm.id }}/delete" onsubmit="return confirm('Destroy {{ vm.name }}?')"><button class="underline text-red-600" type="submit">Destroy</button></form>
+  </td>
+</tr>
+{% endfor %}

@@ -1,0 +1,12 @@
+apiVersion: v2
+name: kletka
+description: >-
+  Hosted Firecracker microVM sandboxes on Kubernetes
+type: application
+version: 0.0.1
+appVersion: "v0.0.1"
+kubeVersion: ">=1.33.0-0"
+home: https://github.com/kletka-dev/kletka
+sources:
+  - https://github.com/kletka-dev/kletka
+keywords: [firecracker, microvm, sandbox, kvm]

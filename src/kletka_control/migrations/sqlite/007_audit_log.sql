@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS audit_events (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at  INTEGER NOT NULL,
+    user_id     TEXT NOT NULL,
+    actor       TEXT NOT NULL,
+    action      TEXT NOT NULL,
+    vm_id       TEXT,
+    vm_name     TEXT,
+    outcome     TEXT NOT NULL DEFAULT 'ok',
+    detail      TEXT,
+    source_ip   TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_events(user_id, id);
+CREATE INDEX IF NOT EXISTS idx_audit_vm ON audit_events(vm_id, id);
+CREATE INDEX IF NOT EXISTS idx_audit_time ON audit_events(created_at);

@@ -1,0 +1,24 @@
+#!/bin/bash
+set -euo pipefail
+
+mnt="/.kletka/checkpoints"
+mkdir -p "$mnt"
+
+dev=""
+for _ in $(seq 1 20); do
+    dev="$(blkid -L kletka-checkpts 2>/dev/null || true)"
+    [ -n "$dev" ] && break
+    sleep 0.5
+done
+if [ -z "$dev" ]; then
+    echo "kletka-checkpoints: no checkpoints drive found, skipping"
+    exit 0
+fi
+
+if mountpoint -q "$mnt"; then
+    echo "kletka-checkpoints: already mounted"
+    exit 0
+fi
+
+mount -o ro "$dev" "$mnt"
+echo "kletka-checkpoints: mounted $dev at $mnt"

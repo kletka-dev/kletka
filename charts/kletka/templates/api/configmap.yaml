@@ -1,0 +1,44 @@
+{{- $config := dict
+  "KLETKA_BIND_ADDR" "0.0.0.0:8080"
+  "KLETKA_DATABASE_URL" "sqlite:/var/lib/kletka/control.db?mode=rwc"
+  "KLETKA_K8S_NAMESPACE" .Values.namespaces.vms
+  "KLETKA_VM_SERVICE_ACCOUNT" (include "kletka.vmServiceAccount" .)
+  "KLETKA_VM_STORAGE_CLASS" .Values.vms.storageClass
+  "KLETKA_VM_AGENT_IMAGE" (include "kletka.image" (dict "image" .Values.vmAgent.image "root" .))
+  "KLETKA_GUEST_IMAGES" (include "kletka.pairs" .Values.guestImageRefs)
+  "KLETKA_GUEST_IMAGE_OVERLAY_BOOT" (include "kletka.pairs" .Values.guestImageOverlayBoot)
+  "KLETKA_GUEST_IMAGES_CONFIGMAP" (printf "%s/%s" .Release.Namespace (include "kletka.guestImagesConfigMap" .))
+  "KLETKA_VM_NODE_SELECTOR" (include "kletka.vmNodeSelector" .)
+  "KLETKA_VM_TAINT" .Values.vms.taintKey
+  "KLETKA_VM_DISK_SLACK_MIB" (toString .Values.vms.diskSlackMib)
+  "KLETKA_VM_MEMORY_OVERHEAD_MIB" (toString .Values.vms.memoryOverheadMib)
+  "KLETKA_IDLE_TIMEOUT_SECS" (toString (int .Values.vms.idleTimeoutSecs))
+  "KLETKA_AUDIT_RETENTION_DAYS" (toString (int .Values.api.audit.retentionDays))
+  "KLETKA_TRUST_FORWARDED_FOR" (toString (or .Values.api.audit.trustForwardedFor .Values.api.ingress.enabled))
+  "KLETKA_RATE_LIMIT_AUTH_PER_MIN" (toString (int .Values.api.rateLimit.authPerMinute))
+  "KLETKA_RATE_LIMIT_API_PER_MIN" (toString (int .Values.api.rateLimit.apiPerMinute))
+  "KLETKA_PLATFORM_ADMINS" (join "," .Values.api.platformAdmins)
+  "KLETKA_NAMESPACE_CREATION" .Values.api.namespaces.creation
+  "KLETKA_MAX_NAMESPACES_PER_USER" (toString (int .Values.api.namespaces.maxPerUser))
+  "KLETKA_NAMESPACE_DEFAULT_MAX_VMS" (toString (int .Values.api.namespaces.defaultQuota.maxVms))
+  "KLETKA_NAMESPACE_DEFAULT_MAX_VCPU" (toString (int .Values.api.namespaces.defaultQuota.maxVcpu))
+  "KLETKA_NAMESPACE_DEFAULT_MAX_MEM_MIB" (toString (int .Values.api.namespaces.defaultQuota.maxMemMib))
+}}
+{{- if not (has .Values.api.namespaces.creation (list "everyone" "admins")) }}
+{{- fail "api.namespaces.creation must be 'everyone' or 'admins'" }}
+{{- end }}
+{{- if .Values.api.database.external }}
+{{- $_ := unset $config "KLETKA_DATABASE_URL" }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kletka.apiName" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "kletka.apiName" . }}
+data:
+  {{- range $k, $v := mergeOverwrite $config .Values.api.extraEnv }}
+  {{ $k }}: {{ toString $v | quote }}
+  {{- end }}

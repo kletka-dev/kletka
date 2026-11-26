@@ -1,0 +1,65 @@
+{{- if .Values.vms.networkPolicy.enabled }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vm-default-deny
+  namespace: {{ .Values.namespaces.vms }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vm-allow-relay
+  namespace: {{ .Values.namespaces.vms }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      kletka.dev/component: vm
+  ingress:
+    - fromEntities:
+        - host
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: {{ .Release.Namespace }}
+            k8s:app.kubernetes.io/name: {{ include "kletka.apiName" . }}
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vm-allow-internet
+  namespace: {{ .Values.namespaces.vms }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toCIDRSet:
+        - cidr: 0.0.0.0/0
+          {{- with .Values.vms.networkPolicy.deniedCIDRs }}
+          except:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

@@ -1,0 +1,22 @@
+{{- if and .Values.registry.enabled (not .Values.registry.persistence.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "kletka.registryName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "kletka.registryName" . }}
+  {{- with include "kletka.keepAnnotations" . }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.registry.persistence.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.registry.persistence.size }}
+{{- end }}

@@ -1,0 +1,14 @@
+[Unit]
+Description=Kletka checkpoint exposure mount (/.kletka/checkpoints)
+Documentation=man:kletka-checkpoints(8)
+After=local-fs.target systemd-udevd.service
+Before=sshd.service
+ConditionPathExists=/usr/local/sbin/kletka-checkpoints
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/kletka-checkpoints
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

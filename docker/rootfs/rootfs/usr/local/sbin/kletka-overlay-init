@@ -1,0 +1,60 @@
+#!/bin/bash
+
+set -euo pipefail
+
+OVERLAY_LABEL="kletka-overlay"
+
+if ! mountpoint -q /dev; then
+    mount -t devtmpfs devtmpfs /dev
+fi
+mount -t proc proc /proc
+mount -t sysfs sys /sys
+mount -t tmpfs -o mode=0755 tmpfs /run
+
+overlay_dev=""
+for _ in $(seq 1 40); do
+    overlay_dev="$(blkid -L "$OVERLAY_LABEL" 2>/dev/null || true)"
+    if [ -n "$overlay_dev" ]; then
+        break
+    fi
+    sleep 0.25
+done
+
+if [ -z "$overlay_dev" ]; then
+    echo "kletka-overlay-init: no '$OVERLAY_LABEL' drive found; booting the read-only base (degraded)"
+    exec /sbin/init
+fi
+
+mkdir -p /run/kletka-overlay
+if ! mount "$overlay_dev" /run/kletka-overlay; then
+    echo "kletka-overlay-init: cannot mount $overlay_dev; booting the read-only base (degraded)"
+    exec /sbin/init
+fi
+
+mkdir -p /run/kletka-overlay/upper \
+         /run/kletka-overlay/work \
+         /run/kletka-overlay/newroot
+
+if ! mount -t overlay overlay \
+        -o lowerdir=/,upperdir=/run/kletka-overlay/upper,workdir=/run/kletka-overlay/work \
+        /run/kletka-overlay/newroot; then
+    echo "kletka-overlay-init: overlayfs mount failed; booting the read-only base (degraded)"
+    exec /sbin/init
+fi
+
+for dir in dev proc sys; do
+    mkdir -p "/run/kletka-overlay/newroot/$dir"
+    if mountpoint -q "/$dir"; then
+        mount --move "/$dir" "/run/kletka-overlay/newroot/$dir"
+    fi
+done
+
+mount --make-rprivate /
+
+cd /run/kletka-overlay/newroot
+mkdir -p old
+pivot_root . old
+
+umount -l /old
+
+exec /sbin/init

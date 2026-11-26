@@ -1,0 +1,50 @@
+#!/bin/bash
+
+set -euo pipefail
+
+printf 'nameserver 10.0.2.3\n' > /etc/resolv.conf
+
+for _ in 1 2 3; do
+    if ping -c1 -W1 10.0.2.2 > /dev/null 2>&1; then
+        break
+    fi
+    sleep 1
+done
+
+dev="$(blkid -L kletka-seed 2>/dev/null || true)"
+if [ -z "$dev" ]; then
+    echo "kletka-seed: no seed drive found, skipping"
+    exit 0
+fi
+
+mnt="$(mktemp -d)"
+mount "$dev" "$mnt"
+
+if [ -s "$mnt/hostname" ]; then
+    install -m 0644 "$mnt/hostname" /etc/hostname
+    hostname -F /etc/hostname || true
+fi
+
+if [ -s "$mnt/authorized_keys" ]; then
+    install -d -m 0700 -o user -g user /home/user/.ssh
+    install -m 0600 -o user -g user "$mnt/authorized_keys" \
+        /home/user/.ssh/authorized_keys
+    install -d -m 0755 /etc/kletka
+    install -m 0644 "$mnt/authorized_keys" /etc/kletka/authorized_keys
+fi
+
+if [ -f "$mnt/wireguard.conf" ]; then
+    if [ -s "$mnt/wireguard.conf" ]; then
+        if ! install -d -m 0700 /etc/wireguard ||
+            ! install -m 0600 "$mnt/wireguard.conf" /etc/wireguard/wg0.conf; then
+            rm -f /etc/wireguard/wg0.conf || true
+            echo "kletka-seed: could not stage WireGuard config"
+        fi
+    else
+        rm -f /etc/wireguard/wg0.conf || echo "kletka-seed: could not clear WireGuard config"
+    fi
+fi
+
+umount "$mnt"
+rmdir "$mnt"
+echo "kletka-seed: applied identity from $dev"

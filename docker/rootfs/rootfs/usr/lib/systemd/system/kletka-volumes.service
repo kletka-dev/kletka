@@ -1,0 +1,15 @@
+[Unit]
+Description=Kletka persistent volume overlay (/rw)
+Documentation=man:kletka-volumes(8)
+After=local-fs.target systemd-udevd.service kletka-seed.service
+Requires=kletka-seed.service
+Before=sshd.service
+ConditionPathExists=/usr/local/sbin/kletka-volumes
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/kletka-volumes
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

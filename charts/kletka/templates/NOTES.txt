@@ -1,0 +1,27 @@
+kletka {{ .Chart.AppVersion }} is installed in {{ .Release.Namespace }}.
+
+{{- if .Values.imageBuilder.enabled }}
+
+Guest images ({{ include "kletka.guestImageDefinitions" . | fromJsonArray | len }} defined) are built on schedule "{{ .Values.imageBuilder.schedule }}".
+
+  kubectl -n {{ .Values.namespaces.imageBuilder }} create job --from=cronjob/{{ include "kletka.builderName" . }} first-build
+  kubectl -n {{ .Values.namespaces.imageBuilder }} logs -f job/first-build
+
+Announced images:
+
+  kubectl -n {{ .Release.Namespace }} get configmap {{ include "kletka.guestImagesConfigMap" . }} -o yaml
+{{- end }}
+
+Check that vm nodes advertise KVM:
+
+  kubectl get nodes -o custom-columns=NAME:.metadata.name,KVM:.status.allocatable."kletka\.dev/kvm"
+
+{{- if .Values.api.ingress.enabled }}
+
+Log in: kletka login --control https://{{ .Values.api.ingress.host }} --email you@example.com
+{{- else }}
+
+The API Service is cluster-internal ({{ include "kletka.apiName" . }}:{{ .Values.api.service.port }}); enable api.ingress or port-forward:
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "kletka.apiName" . }} 8080:{{ .Values.api.service.port }}
+{{- end }}

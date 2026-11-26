@@ -1,0 +1,14 @@
+[Unit]
+Description=Kletka per-VM identity seeding
+Documentation=man:kletka-seed(8)
+After=local-fs.target systemd-udevd.service NetworkManager.service
+Before=sshd.service kletka-volumes.service
+ConditionPathExists=/usr/local/sbin/kletka-seed
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/kletka-seed
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

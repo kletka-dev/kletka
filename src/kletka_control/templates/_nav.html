@@ -1,0 +1,25 @@
+<header class="bg-white border-b">
+  <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-4">
+      <a href="/vms" class="font-bold text-lg">kletka</a>
+      <nav class="flex items-center gap-3 text-sm">
+        <a href="/vms" class="underline">VMs</a>
+        <a href="/namespaces" class="underline">Namespaces</a>
+        {% if nav.platform_admin %}<a href="/admin" class="underline">Platform admin</a>{% endif %}
+      </nav>
+    </div>
+    <div class="flex items-center gap-3 text-sm">
+      <form method="post" action="/ns/switch" class="flex items-center gap-1">
+        <label for="ns-switch" class="text-gray-500 text-xs">Namespace</label>
+        <select id="ns-switch" name="namespace" class="border rounded px-2 py-1 text-sm" onchange="this.form.submit()">
+          {% for opt in nav.options %}
+          <option value="{{ opt.id }}"{% if opt.current %} selected{% endif %}>{{ opt.name }} ({{ opt.role }})</option>
+          {% endfor %}
+        </select>
+        <noscript><button class="underline" type="submit">Switch</button></noscript>
+      </form>
+      <span class="text-gray-500">{{ nav.email }}</span>
+      <form method="post" action="/logout"><button class="underline" type="submit">Logout</button></form>
+    </div>
+  </div>
+</header>

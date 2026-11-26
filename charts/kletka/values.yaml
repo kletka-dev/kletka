@@ -1,0 +1,181 @@
+
+nameOverride: ""
+fullnameOverride: ""
+
+imagePullSecrets: []
+
+keepPersistentResources: true
+
+namespaces:
+  createRelease: false
+  vms: kletka-vms
+  imageBuilder: kletka-image-builder
+  node: kletka-node
+  create: true
+
+api:
+  replicas: 1
+  image:
+    repository: ghcr.io/kletka-dev/kletka-api
+    tag: ""
+    digest: ""
+    pullPolicy: IfNotPresent
+  database:
+    external: false
+    url: ""
+  secret:
+    existingSecret: ""
+    adminToken: ""
+  rateLimit:
+    authPerMinute: 10
+    apiPerMinute: 600
+  platformAdmins: []
+  namespaces:
+    creation: everyone
+    maxPerUser: 3
+    defaultQuota:
+      maxVms: 10
+      maxVcpu: 16
+      maxMemMib: 16384
+  extraEnv: {}
+  audit:
+    retentionDays: 90
+    trustForwardedFor: false
+  persistence:
+    size: 1Gi
+    storageClass: ""
+    existingClaim: ""
+  service:
+    type: ClusterIP
+    port: 80
+  ingress:
+    enabled: false
+    className: ""
+    host: kletka.example.com
+    annotations: {}
+    tls: []
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { cpu: "2", memory: 512Mi }
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+vmAgent:
+  image:
+    repository: ghcr.io/kletka-dev/kletka-vm-agent
+    tag: ""
+    digest: ""
+
+vms:
+  nodeSelector:
+    kletka.dev/vm-node: "true"
+  taintKey: kletka.dev/untrusted
+  storageClass: ""
+  diskSlackMib: 4096
+  memoryOverheadMib: 256
+  idleTimeoutSecs: 28800
+  networkPolicy:
+    enabled: true
+    deniedCIDRs:
+      - 10.0.0.0/8
+      - 172.16.0.0/12
+      - 192.168.0.0/16
+      - 169.254.0.0/16
+      - 100.64.0.0/10
+      - 224.0.0.0/4
+      - 240.0.0.0/4
+
+guestImages:
+  default: {}
+
+
+guestImageRefs: {}
+guestImageOverlayBoot: {}
+
+registry:
+  enabled: true
+  image:
+    repository: docker.io/library/registry
+    tag: "3.0.0"
+    digest: ""
+    pullPolicy: IfNotPresent
+  port: 5000
+  retention:
+    keepVersions: 2
+  garbageCollect:
+    enabled: true
+    hourUTC: 12
+  persistence:
+    size: 50Gi
+    storageClass: ""
+    existingClaim: ""
+  networkPolicy:
+    enabled: true
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: "1", memory: 512Mi }
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  nodeProxy:
+    enabled: true
+    port: 5000
+    image:
+      repository: docker.io/nginxinc/nginx-unprivileged
+      tag: "1.28.0-alpine"
+      digest: ""
+      pullPolicy: IfNotPresent
+    resources:
+      requests: { cpu: 10m, memory: 16Mi }
+      limits: { cpu: 500m, memory: 64Mi }
+
+imageBuilder:
+  enabled: true
+  image:
+    repository: ghcr.io/kletka-dev/kletka-image-builder
+    tag: ""
+    digest: ""
+    pullPolicy: IfNotPresent
+  schedule: "17 4 * * *"
+  timeZone: ""
+  fullBuildDay: 7
+  keepVersions: 3
+  activeDeadlineSeconds: 7200
+  registry:
+    push: ""
+    pull: ""
+    prefix: kletka/guest
+    tlsVerify: true
+    credentialsSecret: ""
+  seedRef: ""
+  persistence:
+    size: 20Gi
+    storageClass: ""
+    existingClaim: ""
+  resources:
+    requests: { cpu: "1", memory: 2Gi }
+    limits: { cpu: "4", memory: 6Gi }
+  nodeSelector: {}
+  tolerations:
+    - key: kletka.dev/untrusted
+      operator: Exists
+  affinity: {}
+
+devicePlugin:
+  enabled: true
+  image:
+    repository: docker.io/squat/generic-device-plugin
+    tag: 0ae0011
+    digest: sha256:c57b93a01053f4c422ac0dee0063c0bcf6d19b1558aff8e43461bdd3d44d0646
+    pullPolicy: IfNotPresent
+  initImage:
+    repository: docker.io/library/busybox
+    tag: "1.38"
+    digest: ""
+    pullPolicy: IfNotPresent
+  slots: 110
+  resources:
+    requests: { cpu: 50m, memory: 10Mi }
+    limits: { cpu: 100m, memory: 32Mi }

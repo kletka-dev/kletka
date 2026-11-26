@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "kletka.apiName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "kletka.apiName" . }}
+{{- include "kletka.imagePullSecrets" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "kletka.apiName" . }}
+  namespace: {{ .Values.namespaces.vms }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/status"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create", "get", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["create", "get", "delete", "patch"]
+  - apiGroups: ["cilium.io"]
+    resources: ["ciliumnetworkpolicies"]
+    verbs: ["get", "list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "kletka.apiName" . }}
+  namespace: {{ .Values.namespaces.vms }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kletka.apiName" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: {{ include "kletka.apiName" . }}
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "kletka.apiName" . }}-guest-images
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: [{{ include "kletka.guestImagesConfigMap" . | quote }}]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "kletka.apiName" . }}-guest-images
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kletka.apiName" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: {{ include "kletka.apiName" . }}-guest-images
+  apiGroup: rbac.authorization.k8s.io

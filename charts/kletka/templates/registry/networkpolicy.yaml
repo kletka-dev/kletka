@@ -1,0 +1,31 @@
+{{- if and .Values.registry.enabled .Values.registry.networkPolicy.enabled }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ include "kletka.registryName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "kletka.registryName" . }}
+  ingress:
+    - fromEntities:
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - port: {{ .Values.registry.port | quote }}
+              protocol: TCP
+    {{- if .Values.imageBuilder.enabled }}
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: {{ .Values.namespaces.imageBuilder }}
+            k8s:app.kubernetes.io/name: {{ include "kletka.builderName" . }}
+      toPorts:
+        - ports:
+            - port: {{ .Values.registry.port | quote }}
+              protocol: TCP
+    {{- end }}
+{{- end }}

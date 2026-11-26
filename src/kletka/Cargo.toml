@@ -1,0 +1,18 @@
+[package]
+name = "kletka"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+kletka_types = { path = "../kletka_types" }
+tracing = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+fslock = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+tokio = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+rust_embed = { workspace = true }

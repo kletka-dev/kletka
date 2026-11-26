@@ -1,0 +1,45 @@
+#!/bin/bash
+
+set -euo pipefail
+
+dev="$(blkid -L kletka-rw 2>/dev/null || true)"
+if [ -z "$dev" ]; then
+    echo "kletka-volumes: no persistent volume found, skipping"
+    exit 0
+fi
+
+fstype="$(blkid -o value -s TYPE "$dev" || true)"
+if [ "$fstype" != "ext4" ]; then
+    mkfs.ext4 -F -L kletka-rw "$dev"
+fi
+
+mkdir -p /rw
+mount "$dev" /rw
+
+mkdir -p /rw/home /rw/usrlocal/bin
+
+if [ ! -e /rw/home/.kletka-init ]; then
+    cp -a /etc/skel/. /rw/home/
+    chown -R user:user /rw/home
+    touch /rw/home/.kletka-init
+fi
+chown user:user /rw/home
+
+if [ ! -e /rw/usrlocal/.kletka-init ]; then
+    cp -a /usr/local/. /rw/usrlocal/
+    touch /rw/usrlocal/.kletka-init
+fi
+
+mount --bind /rw/home /home/user
+mount --bind /rw/usrlocal /usr/local
+
+if [ -f /etc/kletka/authorized_keys ]; then
+    install -d -m 0700 -o user -g user /rw/home/.ssh
+    install -m 0600 -o user -g user /etc/kletka/authorized_keys \
+        /rw/home/.ssh/authorized_keys
+fi
+
+cp /etc/hostname /rw/hostname
+mount --bind /rw/hostname /etc/hostname
+
+echo "kletka-volumes: mounted persistent volume $dev at /rw"

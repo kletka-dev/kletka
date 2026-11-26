@@ -1,0 +1,18 @@
+{{- if and .Values.imageBuilder.enabled (not .Values.imageBuilder.persistence.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "kletka.builderName" . }}-store
+  namespace: {{ .Values.namespaces.imageBuilder }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "kletka.builderName" . }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- with .Values.imageBuilder.persistence.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.imageBuilder.persistence.size }}
+{{- end }}

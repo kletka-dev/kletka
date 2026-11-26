@@ -1,0 +1,58 @@
+#!/bin/bash
+set -euo pipefail
+
+configure_firewall() {
+    fwmark="$(wg show wg0 fwmark 2>/dev/null || true)"
+    {
+        printf '%s\n' \
+            'destroy table inet kletka_wireguard' \
+            'add table inet kletka_wireguard' \
+            'add chain inet kletka_wireguard output { type filter hook output priority 0; policy drop; }' \
+            'add rule inet kletka_wireguard output oifname lo accept' \
+            'add rule inet kletka_wireguard output oifname wg0 accept' \
+            'add rule inet kletka_wireguard output ip daddr 10.0.2.2 accept'
+        if [ -n "$fwmark" ] && [ "$fwmark" != off ]; then
+            printf 'add rule inet kletka_wireguard output meta mark %s accept\n' "$fwmark"
+        fi
+    } | nft -f -
+}
+
+case "${1:-apply}" in
+    apply)
+        staging="$(mktemp)"
+        trap 'rm -f "$staging"' EXIT
+        cat > "$staging"
+        install -d -m 0700 /etc/wireguard
+        install -m 0600 "$staging" /etc/wireguard/wg0.conf
+        if systemctl restart wg-quick@wg0.service; then
+            status=0
+        else
+            status=$?
+        fi
+        configure_firewall
+        if [ "$status" -ne 0 ]; then
+            systemctl stop wg-quick@wg0.service || true
+        fi
+        exit "$status"
+        ;;
+    clear)
+        systemctl disable --now wg-quick@wg0.service || true
+        rm -f /etc/wireguard/wg0.conf
+        nft delete table inet kletka_wireguard 2>/dev/null || true
+        printf 'nameserver 10.0.2.3\n' > /etc/resolv.conf
+        ;;
+    boot)
+        if [ -s /etc/wireguard/wg0.conf ]; then
+            exec "$0" apply < /etc/wireguard/wg0.conf
+        fi
+        exec "$0" clear
+        ;;
+    guard)
+        if [ -s /etc/wireguard/wg0.conf ]; then
+            configure_firewall
+        fi
+        ;;
+    *)
+        exit 2
+        ;;
+esac

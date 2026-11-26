@@ -1,0 +1,14 @@
+edition = "2024"
+
+format_strings = true
+
+wrap_comments = true
+
+error_on_unformatted = true
+
+group_imports = "StdExternalCrate"
+imports_granularity = "Module"
+imports_layout = "HorizontalVertical"
+reorder_imports = true
+
+use_field_init_shorthand = true

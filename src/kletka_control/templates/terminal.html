@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kletka — {{ vm.name }} terminal</title>
+<script src="/assets/tailwind.js"></script>
+<link rel="stylesheet" href="/assets/xterm.min.css">
+<script src="/assets/xterm.min.js"></script>
+<script src="/assets/xterm-addon-fit.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-900 min-h-screen">
+<header class="bg-white border-b">
+  <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="/vms/{{ vm.id }}" class="underline text-sm">← {{ vm.name }}</a>
+      <span class="text-xs bg-gray-200 rounded px-2 py-0.5">{{ vm.status }}</span>
+    </div>
+    <div class="flex items-center gap-2 text-sm">
+      <span class="text-gray-500 text-xs">{{ email }}</span>
+      <label class="text-xs text-gray-500"><input id="serial" type="checkbox" class="mr-1"{% if vm.status != "running" %} checked{% endif %}>serial</label>
+      <button id="reconnect" class="border rounded px-2 py-1 text-xs">Reconnect</button>
+    </div>
+  </div>
+</header>
+<main class="max-w-5xl mx-auto px-4 py-4">
+  <div id="term" class="rounded overflow-hidden" style="height: 70vh; background: #000"></div>
+  <p class="text-xs text-gray-500 mt-2">Interactive shell over the WS relay (<code>console</code>, like <code>kletka console</code>). Cookies authenticate the socket — no token paste needed.</p>
+</main>
+<script>
+const VM_ID = "{{ vm.id }}";
+const el = document.getElementById('term');
+const term = new Terminal({ cursorBlink: true, fontSize: 14 });
+const fit = new FitAddon.FitAddon();
+term.loadAddon(fit);
+term.open(el);
+fit.fit();
+const enc = new TextEncoder(), dec = new TextDecoder();
+let ws = null;
+const BOOTING = {% if vm.status != "running" %}true{% else %}false{% endif %};
+let attempts = 0, backoffMs = 1000, gotData = false, retryTimer = null;
+const MAX_ATTEMPTS = 12;
+function wsUrl(path) {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return proto + '//' + location.host + path;
+}
+function connect() {
+  if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+  if (ws) { try { ws.close(); } catch {} }
+  gotData = false;
+  const serial = document.getElementById('serial').checked;
+  term.writeln('connecting…');
+  ws = new WebSocket(wsUrl('/v1/vms/' + VM_ID + '/console'));
+  ws.binaryType = 'arraybuffer';
+  ws.onopen = () => {
+    term.writeln('connected (serial=' + serial + ')');
+    if (serial) term.writeln('(serial console: fixed geometry — untick "serial" and Reconnect for the resizable ssh console)');
+    if (!serial && BOOTING) term.writeln('(ssh console needs the guest fully booted; the serial console attaches earlier — press Enter if the screen looks blank)');
+    ws.send(JSON.stringify({ kind: 'console', serial: serial, pty_cols: term.cols, pty_rows: term.rows, term: 'xterm-256color', colorterm: 'truecolor' }));
+  };
+  ws.onmessage = (ev) => {
+    gotData = true;
+    if (typeof ev.data === 'string') { term.write(ev.data); }
+    else { term.write(dec.decode(ev.data)); }
+  };
+  ws.onclose = (ev) => {
+    const why = ev.reason ? ' — ' + ev.reason : '';
+    if (!gotData && attempts < MAX_ATTEMPTS) {
+      attempts++;
+      const wait = Math.round(backoffMs / 1000);
+      term.writeln('\r\n[vm not reachable yet' + (why || ' — it may still be booting') + '; retry ' + attempts + '/' + MAX_ATTEMPTS + ' in ' + wait + 's]');
+      retryTimer = setTimeout(() => { backoffMs = Math.min(backoffMs * 2, 15000); connect(); }, backoffMs);
+      return;
+    }
+    term.writeln('\r\n[disconnected' + why + ' — Reconnect to resume]');
+  };
+  term.onData((d) => { if (ws && ws.readyState === 1) ws.send(enc.encode(d)); });
+  let warnedSerialResize = false;
+  window.onresize = () => {
+    fit.fit();
+    if (!ws || ws.readyState !== 1) return;
+    if (document.getElementById('serial').checked) {
+      if (!warnedSerialResize) {
+        warnedSerialResize = true;
+        term.writeln('\r\n[serial consoles cannot resize — untick "serial" and Reconnect for the ssh console]');
+      }
+      return;
+    }
+    ws.send(JSON.stringify({ pty_cols: term.cols, pty_rows: term.rows }));
+  };
+}
+document.getElementById('reconnect').onclick = () => { attempts = 0; backoffMs = 1000; connect(); };
+connect();
+</script>
+</body>
+</html>

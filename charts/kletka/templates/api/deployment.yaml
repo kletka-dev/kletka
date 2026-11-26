@@ -1,0 +1,95 @@
+{{- $externalDb := .Values.api.database.external }}
+{{- if and (gt (int .Values.api.replicas) 1) (not $externalDb) }}
+{{- fail "api.replicas > 1 requires api.database.external: true (SQLite is single-writer)" }}
+{{- end }}
+{{- if and .Values.api.database.url (not $externalDb) }}
+{{- fail "api.database.url requires api.database.external: true" }}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kletka.apiName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "kletka.apiName" . }}
+    kletka.dev/component: api
+spec:
+  replicas: {{ .Values.api.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "kletka.apiName" . }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "kletka.apiName" . }}
+        kletka.dev/component: api
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/api/configmap.yaml") . | sha256sum }}
+        {{- if not .Values.api.secret.existingSecret }}
+        checksum/secret: {{ include (print $.Template.BasePath "/api/secret.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.api.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "kletka.apiName" . }}
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: kletka-api
+          image: {{ include "kletka.image" (dict "image" .Values.api.image "root" .) }}
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          ports:
+            - { name: http, containerPort: 8080 }
+          envFrom:
+            - configMapRef: { name: {{ include "kletka.apiName" . }}-config }
+            - secretRef: { name: {{ include "kletka.apiSecretName" . }} }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            {{- if not $externalDb }}
+            - { name: data, mountPath: /var/lib/kletka }
+            {{- end }}
+            - { name: tmp, mountPath: /tmp }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 10
+          {{- with .Values.api.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.api.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        {{- if not $externalDb }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.api.persistence.existingClaim | default (printf "%s-data" (include "kletka.apiName" .)) }}
+        {{- end }}
+        - name: tmp
+          emptyDir: {}

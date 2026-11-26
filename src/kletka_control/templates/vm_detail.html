@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kletka — {{ vm.name }}</title>
+<script src="/assets/tailwind.js"></script>
+<script src="/assets/htmx.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-900 min-h-screen">
+<header class="bg-white border-b">
+  <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="/vms" class="underline text-sm">← VMs</a>
+      {% if !namespace.is_empty() %}<span class="text-gray-500 text-sm">{{ namespace }} /</span>{% endif %}
+      <span class="font-bold text-lg">{{ vm.name }}</span>
+      <span class="text-xs bg-gray-200 rounded px-2 py-0.5">{{ vm.status }}</span>
+    </div>
+    <div class="flex items-center gap-3 text-sm">
+      <span class="text-gray-500">{{ email }}</span>
+      <form method="post" action="/logout"><button class="underline" type="submit">Logout</button></form>
+    </div>
+  </div>
+</header>
+<main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+  {% if error.is_some() %}
+  <div class="bg-red-100 text-red-700 text-sm rounded px-3 py-2">{{ error.as_deref().unwrap_or("") }}</div>
+  {% endif %}
+
+  <section class="bg-white shadow rounded p-4">
+    <dl class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+      <div><dt class="text-gray-500 text-xs">ID</dt><dd class="font-mono text-xs break-all">{{ vm.id }}</dd></div>
+      <div><dt class="text-gray-500 text-xs">Image</dt><dd>{{ vm.image }}</dd></div>
+      <div><dt class="text-gray-500 text-xs">vCPU / Mem</dt><dd>{{ vm.vcpu }} / {{ vm.memory_mib }}M</dd></div>
+      <div><dt class="text-gray-500 text-xs">Node</dt><dd>{% if vm.node.is_some() %}{{ vm.node.as_deref().unwrap_or("") }}{% else %}-{% endif %}</dd></div>
+    </dl>
+    <div class="flex flex-wrap gap-2 mt-4 text-sm">
+      <a class="bg-black text-white rounded px-3 py-1.5" href="/vms/{{ vm.id }}/terminal">Open terminal</a>
+      <form method="post" action="/vms/{{ vm.id }}/start"><button class="border rounded px-3 py-1.5" type="submit">Start</button></form>
+      <form method="post" action="/vms/{{ vm.id }}/stop"><button class="border rounded px-3 py-1.5" type="submit">Stop</button></form>
+      <form method="post" action="/vms/{{ vm.id }}/delete" onsubmit="return confirm('Destroy {{ vm.name }}?')"><button class="border border-red-300 text-red-600 rounded px-3 py-1.5" type="submit">Destroy</button></form>
+    </div>
+  </section>
+
+  <section class="bg-white shadow rounded p-4">
+    <h2 class="font-semibold mb-2">Run command <span class="text-xs font-normal text-gray-500">(non-PTY exec over the WS relay, like <code>kletka exec</code>)</span></h2>
+    <div class="flex gap-2">
+      <input id="exec-cmd" value="uname -a" class="flex-1 border rounded px-2 py-1 text-sm font-mono" placeholder="uname -a">
+      <button id="exec-run" class="bg-black text-white rounded px-3 py-1.5 text-sm">Run</button>
+    </div>
+    <pre id="exec-out" class="bg-black text-green-200 rounded mt-3 p-3 text-xs overflow-auto min-h-16 whitespace-pre-wrap"></pre>
+  </section>
+
+  <section class="bg-white shadow rounded p-4 grid md:grid-cols-2 gap-4">
+    <div>
+      <h2 class="font-semibold mb-2">Push file <span class="text-xs font-normal text-gray-500">(single files, ≤256 MiB)</span></h2>
+      <input id="push-file" type="file" class="text-sm mb-2">
+      <div class="flex gap-2">
+        <input id="push-dst" value="/tmp/upload.txt" class="flex-1 border rounded px-2 py-1 text-sm font-mono">
+        <button id="push-run" class="border rounded px-3 py-1.5 text-sm">Push</button>
+      </div>
+      <p id="push-status" class="text-xs text-gray-500 mt-2"></p>
+    </div>
+    <div>
+      <h2 class="font-semibold mb-2">Pull file</h2>
+      <div class="flex gap-2">
+        <input id="pull-src" value="/tmp/upload.txt" class="flex-1 border rounded px-2 py-1 text-sm font-mono">
+        <button id="pull-run" class="border rounded px-3 py-1.5 text-sm">Pull</button>
+      </div>
+      <p id="pull-status" class="text-xs text-gray-500 mt-2"></p>
+    </div>
+  </section>
+
+  <section class="bg-white shadow rounded p-4">
+    <h2 class="font-semibold mb-2">Recent activity <span class="text-xs font-normal text-gray-500">(like <code>kletka audit -n {{ vm.name }}</code>)</span></h2>
+    {% if activity.is_empty() %}
+    <p class="text-sm text-gray-500">No events yet.</p>
+    {% else %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs">
+        <thead class="text-left text-gray-500">
+          <tr><th class="py-1 pr-3">Time</th><th class="py-1 pr-3">Action</th><th class="py-1 pr-3">Result</th><th class="py-1 pr-3">From</th><th class="py-1">Details</th></tr>
+        </thead>
+        <tbody>
+          {% for event in activity %}
+          <tr class="border-t">
+            <td class="py-1 pr-3 whitespace-nowrap">{{ event.time }}</td>
+            <td class="py-1 pr-3 font-mono">{{ event.action }}</td>
+            <td class="py-1 pr-3">{{ event.outcome }}</td>
+            <td class="py-1 pr-3">{{ event.from }}</td>
+            <td class="py-1 font-mono break-all">{{ event.details }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </section>
+</main>
+<script>
+const VM_ID = "{{ vm.id }}";
+const out = document.getElementById('exec-out');
+function wsUrl(path) {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return proto + '//' + location.host + path;
+}
+document.getElementById('exec-run').onclick = async () => {
+  const cmd = document.getElementById('exec-cmd').value.trim().split(/\s+/).filter(Boolean);
+  out.textContent = '$ ' + cmd.join(' ') + '\n';
+  if (!cmd.length) return;
+  const ws = new WebSocket(wsUrl('/v1/vms/' + VM_ID + '/exec'));
+  ws.binaryType = 'arraybuffer';
+  let done = false;
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ kind: 'exec', cmd: cmd, pty: false }));
+    ws.send(new Uint8Array([]));
+  };
+  ws.onmessage = (ev) => {
+    if (typeof ev.data === 'string') {
+      try {
+        const t = JSON.parse(ev.data);
+        if (t.exit !== undefined) { out.textContent += '\n[exit ' + t.exit + ']'; done = true; ws.close(); }
+      } catch { out.textContent += ev.data; }
+    } else {
+      out.textContent += new TextDecoder().decode(ev.data);
+    }
+  };
+  ws.onclose = (ev) => { if (!done) out.textContent += '\n[session closed' + (ev.reason ? ' — ' + ev.reason : '') + ']'; };
+};
+document.getElementById('push-run').onclick = async () => {
+  const f = document.getElementById('push-file').files[0];
+  const dst = document.getElementById('push-dst').value;
+  const st = document.getElementById('push-status');
+  if (!f) { st.textContent = 'pick a file first'; return; }
+  st.textContent = 'pushing…';
+  const res = await fetch('/v1/vms/' + VM_ID + '/file/push?dst=' + encodeURIComponent(dst), {
+    method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: f,
+  });
+  st.textContent = res.ok ? 'pushed ' + f.name + ' → ' + dst : 'push failed (' + res.status + '): ' + (await res.text());
+};
+document.getElementById('pull-run').onclick = async () => {
+  const src = document.getElementById('pull-src').value;
+  const st = document.getElementById('pull-status');
+  st.textContent = 'pulling…';
+  const res = await fetch('/v1/vms/' + VM_ID + '/file/pull?src=' + encodeURIComponent(src));
+  if (!res.ok) { st.textContent = 'pull failed (' + res.status + ')'; return; }
+  const blob = await res.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = src.split('/').pop() || 'file';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  st.textContent = 'pulled ' + src + ' (' + blob.size + ' bytes)';
+};
+</script>
+</body>
+</html>

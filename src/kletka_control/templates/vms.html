@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kletka — VMs</title>
+<script src="/assets/tailwind.js"></script>
+<script src="/assets/htmx.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-900 min-h-screen">
+{% include "_nav.html" %}
+<main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+  {% if error.is_some() %}
+  <div class="bg-red-100 text-red-700 text-sm rounded px-3 py-2">{{ error.as_deref().unwrap_or("") }}</div>
+  {% endif %}
+
+  <section class="bg-white shadow rounded p-4">
+    <h2 class="font-semibold mb-3">Create VM in {{ nav.namespace }}</h2>
+    <form method="post" action="/vms" class="flex flex-wrap gap-2 items-end">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Name (optional)</label>
+        <input name="name" placeholder="auto" maxlength="32" pattern="[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?" title="lowercase letters, digits and dashes; up to 32 characters" class="border rounded px-2 py-1 text-sm w-36">
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Image</label>
+        <input name="image" value="default" class="border rounded px-2 py-1 text-sm w-28">
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">vCPU</label>
+        <input name="vcpu" value="2" inputmode="numeric" class="border rounded px-2 py-1 text-sm w-16">
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Mem MiB</label>
+        <input name="memory_mib" value="1024" inputmode="numeric" class="border rounded px-2 py-1 text-sm w-20">
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Disk MiB (0=image)</label>
+        <input name="disk_mib" value="" placeholder="0" inputmode="numeric" class="border rounded px-2 py-1 text-sm w-20">
+      </div>
+      <div class="w-full">
+        <label class="block text-xs text-gray-500 mb-1">WireGuard config (optional)</label>
+        <textarea name="wireguard_config" rows="5" class="border rounded px-2 py-1 text-sm w-full font-mono" placeholder="[Interface]&#10;PrivateKey = ...&#10;Address = ...&#10;&#10;[Peer]&#10;PublicKey = ...&#10;Endpoint = host:port&#10;AllowedIPs = 0.0.0.0/0, ::/0"></textarea>
+      </div>
+      <button type="submit" class="bg-black text-white rounded px-3 py-1.5 text-sm">Create</button>
+    </form>
+    <p class="text-xs text-gray-500 mt-2">Create blocks like the CLI: the row appears as <code>pending</code> and the table below picks it up as soon as the pod is up.</p>
+  </section>
+
+  <section class="bg-white shadow rounded p-4">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="font-semibold">
+        VMs in <a class="underline" href="/namespaces/{{ nav.namespace_id }}">{{ nav.namespace }}</a>
+        {% if usage.is_some() %}<span class="text-xs font-normal text-gray-500 ml-2">{{ usage.as_deref().unwrap_or("") }}</span>{% endif %}
+      </h2>
+      <button class="text-sm underline" hx-get="/vms/table" hx-target="#vm-rows" hx-swap="innerHTML">Refresh</button>
+    </div>
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left text-gray-500 border-b">
+          <th class="py-1 pr-2">Name</th>
+          <th class="py-1 pr-2">Status</th>
+          <th class="py-1 pr-2">Image</th>
+          <th class="py-1 pr-2">vCPU</th>
+          <th class="py-1 pr-2">Mem</th>
+          <th class="py-1 pr-2">Disk</th>
+          <th class="py-1 pr-2">Node</th>
+          <th class="py-1">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="vm-rows" hx-get="/vms/table" hx-trigger="every 5s" hx-swap="innerHTML">
+        {% for vm in vms %}
+        <tr class="border-b last:border-0">
+          <td class="py-1 pr-2"><a class="underline font-medium" href="/vms/{{ vm.id }}">{{ vm.name }}</a></td>
+          <td class="py-1 pr-2">{{ vm.status }}</td>
+          <td class="py-1 pr-2">{{ vm.image }}</td>
+          <td class="py-1 pr-2">{{ vm.vcpu }}</td>
+          <td class="py-1 pr-2">{{ vm.memory_mib }}M</td>
+          <td class="py-1 pr-2">{% if vm.disk_mib == 0 %}-{% else %}{{ vm.disk_mib }}M{% endif %}</td>
+          <td class="py-1 pr-2">{% if vm.node.is_some() %}{{ vm.node.as_deref().unwrap_or("") }}{% else %}-{% endif %}</td>
+          <td class="py-1 whitespace-nowrap">
+            <a class="underline mr-2" href="/vms/{{ vm.id }}/terminal">Terminal</a>
+            <form class="inline" method="post" action="/vms/{{ vm.id }}/start"><button class="underline mr-2" type="submit">Start</button></form>
+            <form class="inline" method="post" action="/vms/{{ vm.id }}/stop"><button class="underline mr-2" type="submit">Stop</button></form>
+            <form class="inline" method="post" action="/vms/{{ vm.id }}/clone" onsubmit="return confirm('Clone {{ vm.name }} (stopped VMs only)?')"><button class="underline mr-2" type="submit">Clone</button></form>
+            <form class="inline" method="post" action="/vms/{{ vm.id }}/delete" onsubmit="return confirm('Destroy {{ vm.name }}?')"><button class="underline text-red-600" type="submit">Destroy</button></form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if vms.is_empty() %}
+    <p class="text-sm text-gray-500 mt-2">No VMs yet — create one above.</p>
+    {% endif %}
+  </section>
+</main>
+</body>
+</html>

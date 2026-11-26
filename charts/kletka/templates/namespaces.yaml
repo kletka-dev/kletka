@@ -1,0 +1,48 @@
+{{- $keep := include "kletka.keepAnnotations" . -}}
+{{- if .Values.namespaces.createRelease }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Release.Namespace }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+    pod-security.kubernetes.io/enforce: restricted
+  {{- with $keep }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- if .Values.namespaces.create }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespaces.vms }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+    pod-security.kubernetes.io/enforce: restricted
+  {{- with $keep }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+{{- if .Values.imageBuilder.enabled }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespaces.imageBuilder }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+    pod-security.kubernetes.io/enforce: privileged
+{{- end }}
+{{- if or .Values.devicePlugin.enabled (and .Values.registry.enabled .Values.registry.nodeProxy.enabled) }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespaces.node }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+    pod-security.kubernetes.io/enforce: privileged
+{{- end }}
+{{- end }}

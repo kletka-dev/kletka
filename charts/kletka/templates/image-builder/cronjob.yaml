@@ -1,0 +1,93 @@
+{{- if .Values.imageBuilder.enabled }}
+{{- $b := .Values.imageBuilder }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "kletka.builderName" . }}
+  namespace: {{ .Values.namespaces.imageBuilder }}
+  labels:
+    {{- include "kletka.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "kletka.builderName" . }}
+    kletka.dev/component: image-builder
+spec:
+  schedule: {{ $b.schedule | quote }}
+  {{- with $b.timeZone }}
+  timeZone: {{ . | quote }}
+  {{- end }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: {{ $b.activeDeadlineSeconds }}
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: {{ include "kletka.builderName" . }}
+            kletka.dev/component: image-builder
+          annotations:
+            checksum/definitions: {{ include "kletka.guestImageDefinitions" . | sha256sum }}
+        spec:
+          serviceAccountName: {{ include "kletka.builderName" . }}
+          restartPolicy: Never
+          {{- with $b.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $b.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $b.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: builder
+              image: {{ include "kletka.image" (dict "image" $b.image "root" .) }}
+              imagePullPolicy: {{ $b.image.pullPolicy }}
+              securityContext:
+                privileged: true
+                seccompProfile: { type: Unconfined }
+              env:
+                - { name: KLETKA_DATA_DIR, value: /var/lib/kletka }
+                - { name: KLETKA_BUILDER_IMAGES, value: /etc/kletka-builder/images.json }
+                - { name: KLETKA_BUILDER_PRUNE_ENGINE, value: "true" }
+                - { name: KLETKA_BUILDER_FULL_BUILD_DAY, value: {{ $b.fullBuildDay | quote }} }
+                - { name: KLETKA_BUILDER_KEEP_VERSIONS, value: {{ $b.keepVersions | quote }} }
+                - { name: KLETKA_BUILDER_PUSH_REGISTRY, value: {{ include "kletka.builderPushRegistry" . | quote }} }
+                - { name: KLETKA_BUILDER_PULL_REGISTRY, value: {{ include "kletka.builderPullRegistry" . | quote }} }
+                - { name: KLETKA_BUILDER_REPOSITORY_PREFIX, value: {{ $b.registry.prefix | quote }} }
+                - { name: KLETKA_BUILDER_REGISTRY_TLS_VERIFY, value: {{ include "kletka.builderTlsVerify" . | quote }} }
+                - { name: KLETKA_BUILDER_REGISTRY_RETENTION, value: {{ include "kletka.builderRetention" . | quote }} }
+                - { name: KLETKA_BUILDER_VM_NAMESPACE, value: {{ .Values.namespaces.vms | quote }} }
+                - name: KLETKA_BUILDER_CONFIGMAP
+                  value: {{ printf "%s/%s" .Release.Namespace (include "kletka.guestImagesConfigMap" .) | quote }}
+                {{- with $b.seedRef }}
+                - { name: KLETKA_BUILDER_SEED_REF, value: {{ . | quote }} }
+                {{- end }}
+                {{- with $b.registry.credentialsSecret }}
+                - name: KLETKA_REGISTRY_USER
+                  valueFrom: { secretKeyRef: { name: {{ . }}, key: username } }
+                - name: KLETKA_REGISTRY_TOKEN
+                  valueFrom: { secretKeyRef: { name: {{ . }}, key: token } }
+                {{- end }}
+              {{- with $b.resources }}
+              resources:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              volumeMounts:
+                - { name: store, mountPath: /var/lib/kletka }
+                - { name: tmp, mountPath: /tmp }
+                - { name: definitions, mountPath: /etc/kletka-builder, readOnly: true }
+          volumes:
+            - name: store
+              persistentVolumeClaim:
+                claimName: {{ $b.persistence.existingClaim | default (printf "%s-store" (include "kletka.builderName" .)) }}
+            - name: tmp
+              emptyDir: {}
+            - name: definitions
+              configMap:
+                name: {{ include "kletka.builderName" . }}-definitions
+{{- end }}

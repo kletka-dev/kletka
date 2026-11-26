@@ -1,0 +1,14 @@
+[Unit]
+Description=Kletka per-VM WireGuard setup
+After=local-fs.target systemd-udevd.service NetworkManager.service kletka-seed.service
+ConditionPathExists=/usr/local/sbin/kletka-wireguard
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/kletka-wireguard boot
+ExecStopPost=/usr/local/sbin/kletka-wireguard guard
+TimeoutStartSec=45s
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

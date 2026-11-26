@@ -1,0 +1,32 @@
+[package]
+name = "kletka_cli"
+edition.workspace = true
+version.workspace = true
+
+[lib]
+name = "kletka_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "kletka"
+path = "src/main.rs"
+
+[dependencies]
+thiserror = { workspace = true }
+kletka_types = { path = "../kletka_types" }
+clap = { workspace = true }
+clap_complete = { workspace = true }
+inquire = { workspace = true }
+crossterm = { workspace = true }
+futures-util = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+axum = { workspace = true }
