@@ -3,95 +3,145 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>kletka — VMs</title>
+<title>Kletka — Machines</title>
 <script src="/assets/tailwind.js"></script>
 <script src="/assets/htmx.min.js"></script>
 </head>
-<body class="bg-gray-100 text-gray-900 min-h-screen">
+<body class="min-h-screen bg-slate-950 text-slate-100">
 {% include "_nav.html" %}
-<main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+<main class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
   {% if error.is_some() %}
-  <div class="bg-red-100 text-red-700 text-sm rounded px-3 py-2">{{ error.as_deref().unwrap_or("") }}</div>
+  <div class="rounded-lg border border-red-900/70 bg-red-950/50 px-4 py-3 text-sm text-red-300">{{ error.as_deref().unwrap_or("") }}</div>
   {% endif %}
 
-  <section class="bg-white shadow rounded p-4">
-    <h2 class="font-semibold mb-3">Create VM in {{ nav.namespace }}</h2>
-    <form method="post" action="/vms" class="flex flex-wrap gap-2 items-end">
-      <div>
-        <label class="block text-xs text-gray-500 mb-1">Name (optional)</label>
-        <input name="name" placeholder="auto" maxlength="32" pattern="[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?" title="lowercase letters, digits and dashes; up to 32 characters" class="border rounded px-2 py-1 text-sm w-36">
-      </div>
-      <div>
-        <label class="block text-xs text-gray-500 mb-1">Image</label>
-        <input name="image" value="default" class="border rounded px-2 py-1 text-sm w-28">
-      </div>
-      <div>
-        <label class="block text-xs text-gray-500 mb-1">vCPU</label>
-        <input name="vcpu" value="2" inputmode="numeric" class="border rounded px-2 py-1 text-sm w-16">
-      </div>
-      <div>
-        <label class="block text-xs text-gray-500 mb-1">Mem MiB</label>
-        <input name="memory_mib" value="1024" inputmode="numeric" class="border rounded px-2 py-1 text-sm w-20">
-      </div>
-      <div>
-        <label class="block text-xs text-gray-500 mb-1">Disk MiB (0=image)</label>
-        <input name="disk_mib" value="" placeholder="0" inputmode="numeric" class="border rounded px-2 py-1 text-sm w-20">
-      </div>
-      <div class="w-full">
-        <label class="block text-xs text-gray-500 mb-1">WireGuard config (optional)</label>
-        <textarea name="wireguard_config" rows="5" class="border rounded px-2 py-1 text-sm w-full font-mono" placeholder="[Interface]&#10;PrivateKey = ...&#10;Address = ...&#10;&#10;[Peer]&#10;PublicKey = ...&#10;Endpoint = host:port&#10;AllowedIPs = 0.0.0.0/0, ::/0"></textarea>
-      </div>
-      <button type="submit" class="bg-black text-white rounded px-3 py-1.5 text-sm">Create</button>
-    </form>
-    <p class="text-xs text-gray-500 mt-2">Create blocks like the CLI: the row appears as <code>pending</code> and the table below picks it up as soon as the pod is up.</p>
+  <section class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="mb-1 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">{{ nav.namespace }}</p>
+      <h1 class="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Machines</h1>
+    </div>
+    <button id="create-open" type="button" class="inline-flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-950/30 transition hover:bg-red-400">
+      <span aria-hidden="true">+</span> Create machine
+    </button>
   </section>
 
-  <section class="bg-white shadow rounded p-4">
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="font-semibold">
-        VMs in <a class="underline" href="/namespaces/{{ nav.namespace_id }}">{{ nav.namespace }}</a>
-        {% if usage.is_some() %}<span class="text-xs font-normal text-gray-500 ml-2">{{ usage.as_deref().unwrap_or("") }}</span>{% endif %}
-      </h2>
-      <button class="text-sm underline" hx-get="/vms/table" hx-target="#vm-rows" hx-swap="innerHTML">Refresh</button>
+  <section class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/70">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 px-4 py-4 sm:px-5">
+      <div>
+        <h2 class="font-medium text-white">Your machines</h2>
+        <p class="mt-1 text-xs text-slate-500">
+          <a class="text-slate-400 hover:text-white" href="/namespaces/{{ nav.namespace_id }}">{{ nav.namespace }}</a>
+          {% if usage.is_some() %}<span class="mx-1.5 text-slate-700">·</span>{{ usage.as_deref().unwrap_or("") }}{% endif %}
+        </p>
+      </div>
+      <button class="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 transition hover:border-slate-500 hover:text-white" hx-get="/vms/table" hx-target="#vm-rows" hx-swap="innerHTML">Refresh</button>
     </div>
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="text-left text-gray-500 border-b">
-          <th class="py-1 pr-2">Name</th>
-          <th class="py-1 pr-2">Status</th>
-          <th class="py-1 pr-2">Image</th>
-          <th class="py-1 pr-2">vCPU</th>
-          <th class="py-1 pr-2">Mem</th>
-          <th class="py-1 pr-2">Disk</th>
-          <th class="py-1 pr-2">Node</th>
-          <th class="py-1">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="vm-rows" hx-get="/vms/table" hx-trigger="every 5s" hx-swap="innerHTML">
-        {% for vm in vms %}
-        <tr class="border-b last:border-0">
-          <td class="py-1 pr-2"><a class="underline font-medium" href="/vms/{{ vm.id }}">{{ vm.name }}</a></td>
-          <td class="py-1 pr-2">{{ vm.status }}</td>
-          <td class="py-1 pr-2">{{ vm.image }}</td>
-          <td class="py-1 pr-2">{{ vm.vcpu }}</td>
-          <td class="py-1 pr-2">{{ vm.memory_mib }}M</td>
-          <td class="py-1 pr-2">{% if vm.disk_mib == 0 %}-{% else %}{{ vm.disk_mib }}M{% endif %}</td>
-          <td class="py-1 pr-2">{% if vm.node.is_some() %}{{ vm.node.as_deref().unwrap_or("") }}{% else %}-{% endif %}</td>
-          <td class="py-1 whitespace-nowrap">
-            <a class="underline mr-2" href="/vms/{{ vm.id }}/terminal">Terminal</a>
-            <form class="inline" method="post" action="/vms/{{ vm.id }}/start"><button class="underline mr-2" type="submit">Start</button></form>
-            <form class="inline" method="post" action="/vms/{{ vm.id }}/stop"><button class="underline mr-2" type="submit">Stop</button></form>
-            <form class="inline" method="post" action="/vms/{{ vm.id }}/clone" onsubmit="return confirm('Clone {{ vm.name }} (stopped VMs only)?')"><button class="underline mr-2" type="submit">Clone</button></form>
-            <form class="inline" method="post" action="/vms/{{ vm.id }}/delete" onsubmit="return confirm('Destroy {{ vm.name }}?')"><button class="underline text-red-600" type="submit">Destroy</button></form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[760px] text-left text-sm">
+        <thead class="bg-slate-950/60 text-[11px] uppercase tracking-wider text-slate-500">
+          <tr>
+            <th class="px-5 py-3 font-medium">Machine</th>
+            <th class="px-3 py-3 font-medium">Status</th>
+            <th class="px-3 py-3 font-medium">Image</th>
+            <th class="px-3 py-3 font-medium">vCPU</th>
+            <th class="px-3 py-3 font-medium">Memory</th>
+            <th class="px-3 py-3 font-medium">Disk</th>
+            <th class="px-3 py-3 font-medium">Node</th>
+            <th class="px-5 py-3 text-right font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="vm-rows" class="divide-y divide-slate-800" hx-get="/vms/table" hx-trigger="every 5s" hx-swap="innerHTML">
+          {% for vm in vms %}
+          <tr class="transition hover:bg-slate-800/40">
+            <td class="px-5 py-4">
+              <a class="font-medium text-slate-100 hover:text-red-300" href="/vms/{{ vm.id }}">{{ vm.name }}</a>
+              <div class="mt-1 font-mono text-[11px] text-slate-500">{{ vm.id }}</div>
+            </td>
+            <td class="px-3 py-4">
+              {% if vm.status == "running" %}
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs text-emerald-300"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>{{ vm.status }}</span>
+              {% else if vm.status == "pending" %}
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-400/10 px-2.5 py-1 text-xs text-amber-300"><span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span>{{ vm.status }}</span>
+              {% else %}
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-700/70 px-2.5 py-1 text-xs text-slate-300"><span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>{{ vm.status }}</span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-4 text-slate-400">{{ vm.image }}</td>
+            <td class="px-3 py-4 text-slate-300">{{ vm.vcpu }}</td>
+            <td class="px-3 py-4 text-slate-300">{{ vm.memory_mib }} MiB</td>
+            <td class="px-3 py-4 text-slate-300">{% if vm.disk_mib == 0 %}—{% else %}{{ vm.disk_mib }} MiB{% endif %}</td>
+            <td class="px-3 py-4 text-slate-400">{% if vm.node.is_some() %}{{ vm.node.as_deref().unwrap_or("") }}{% else %}—{% endif %}</td>
+            <td class="px-5 py-4">
+              <div class="flex justify-end gap-2">
+                <a class="rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:border-slate-500 hover:text-white" href="/vms/{{ vm.id }}/terminal">Terminal</a>
+                {% if vm.status == "running" %}
+                <form method="post" action="/vms/{{ vm.id }}/stop"><button class="rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:border-slate-500 hover:text-white" type="submit">Stop</button></form>
+                {% else %}
+                <form method="post" action="/vms/{{ vm.id }}/start"><button class="rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:border-slate-500 hover:text-white" type="submit">Start</button></form>
+                {% endif %}
+                <form method="post" action="/vms/{{ vm.id }}/delete" onsubmit="return confirm('Destroy {{ vm.name }}?')"><button class="rounded-md border border-red-900/70 px-2.5 py-1.5 text-xs text-red-300 hover:border-red-500 hover:bg-red-950/40" type="submit">Delete</button></form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
     {% if vms.is_empty() %}
-    <p class="text-sm text-gray-500 mt-2">No VMs yet — create one above.</p>
+    <div class="px-5 py-12 text-center">
+      <div class="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl border border-slate-700 bg-slate-800 text-xl text-slate-400">▦</div>
+      <p class="font-medium text-slate-200">No machines yet</p>
+      <p class="mt-1 text-sm text-slate-500">Create your first machine to get started.</p>
+    </div>
     {% endif %}
   </section>
+
+  <dialog id="create-dialog" data-open="{% if error.is_some() %}true{% else %}false{% endif %}" aria-labelledby="create-title" class="m-auto w-[calc(100%-2rem)] max-w-2xl rounded-xl border border-slate-700 bg-slate-900 p-0 text-slate-100 shadow-2xl backdrop:bg-black/70 backdrop:backdrop-blur-sm">
+    <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+      <h2 id="create-title" class="font-medium text-white">Create VM in {{ nav.namespace }}</h2>
+      <form method="dialog"><button aria-label="Close" class="grid h-8 w-8 place-items-center rounded-md text-lg text-slate-400 hover:bg-slate-800 hover:text-white">×</button></form>
+    </div>
+    <form method="post" action="/vms" class="grid gap-4 p-5 sm:grid-cols-2">
+      <div>
+        <label for="vm-name" class="mb-1.5 block text-xs font-medium text-slate-400">Name</label>
+        <input id="vm-name" name="name" placeholder="machine-name" maxlength="32" pattern="[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?" title="lowercase letters, digits and dashes; up to 32 characters" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-red-500 focus:outline-none">
+      </div>
+      <div>
+        <label for="vm-image" class="mb-1.5 block text-xs font-medium text-slate-400">Image</label>
+        <input id="vm-image" name="image" value="default" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none">
+      </div>
+      <div>
+        <label for="vm-vcpu" class="mb-1.5 block text-xs font-medium text-slate-400">vCPU</label>
+        <input id="vm-vcpu" name="vcpu" value="2" inputmode="numeric" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none">
+      </div>
+      <div>
+        <label for="vm-memory" class="mb-1.5 block text-xs font-medium text-slate-400">Memory (MiB)</label>
+        <input id="vm-memory" name="memory_mib" value="1024" inputmode="numeric" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none">
+      </div>
+      <div>
+        <label for="vm-disk" class="mb-1.5 block text-xs font-medium text-slate-400">Disk (MiB)</label>
+        <input id="vm-disk" name="disk_mib" placeholder="Image default" inputmode="numeric" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-red-500 focus:outline-none">
+      </div>
+      <details class="sm:col-span-2">
+        <summary class="cursor-pointer text-sm text-slate-400 hover:text-white">Advanced options</summary>
+        <div class="mt-4">
+          <label for="wireguard-config" class="mb-1.5 block text-xs font-medium text-slate-400">WireGuard configuration</label>
+          <textarea id="wireguard-config" name="wireguard_config" rows="5" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 font-mono text-xs text-white placeholder:text-slate-600 focus:border-red-500 focus:outline-none" placeholder="[Interface]&#10;PrivateKey = ...&#10;Address = ...&#10;&#10;[Peer]&#10;PublicKey = ...&#10;Endpoint = host:port&#10;AllowedIPs = 0.0.0.0/0, ::/0"></textarea>
+        </div>
+      </details>
+      <div class="flex justify-end gap-2 border-t border-slate-800 pt-4 sm:col-span-2">
+        <button type="button" id="create-cancel" class="rounded-lg border border-slate-700 px-4 py-2.5 text-sm text-slate-300 hover:border-slate-500 hover:text-white">Cancel</button>
+        <button type="submit" class="rounded-lg bg-red-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-400">Create VM</button>
+      </div>
+    </form>
+  </dialog>
 </main>
+<script>
+const createDialog = document.getElementById('create-dialog');
+if (createDialog.dataset.open === 'true') createDialog.showModal();
+document.getElementById('create-open').addEventListener('click', () => createDialog.showModal());
+document.getElementById('create-cancel').addEventListener('click', () => createDialog.close());
+</script>
+  </div>
+</div>
 </body>
 </html>

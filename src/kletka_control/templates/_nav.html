@@ -1,25 +1,54 @@
-<header class="bg-white border-b">
-  <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-    <div class="flex items-center gap-4">
-      <a href="/vms" class="font-bold text-lg">kletka</a>
-      <nav class="flex items-center gap-3 text-sm">
-        <a href="/vms" class="underline">VMs</a>
-        <a href="/namespaces" class="underline">Namespaces</a>
-        {% if nav.platform_admin %}<a href="/admin" class="underline">Platform admin</a>{% endif %}
-      </nav>
+<div class="min-h-screen md:flex">
+  <aside class="border-b border-slate-800 bg-slate-950 md:flex md:min-h-screen md:w-60 md:flex-col md:border-b-0 md:border-r">
+    <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+      <a href="/vms" class="flex items-center gap-3 text-lg font-semibold tracking-wide text-white">
+        Kletka
+      </a>
     </div>
-    <div class="flex items-center gap-3 text-sm">
-      <form method="post" action="/ns/switch" class="flex items-center gap-1">
-        <label for="ns-switch" class="text-gray-500 text-xs">Namespace</label>
-        <select id="ns-switch" name="namespace" class="border rounded px-2 py-1 text-sm" onchange="this.form.submit()">
+    <nav class="flex gap-1 overflow-x-auto px-3 py-3 md:flex-col">
+      <a href="/vms" class="flex items-center gap-3 rounded-lg bg-slate-800 px-3 py-2.5 text-sm font-medium text-white">
+        <span class="text-slate-300">▦</span> Machines
+      </a>
+      <a href="/namespaces" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition hover:bg-slate-900 hover:text-white">
+        <span class="text-slate-500">◈</span> Namespaces
+      </a>
+      {% if nav.platform_admin %}
+      <a href="/admin" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition hover:bg-slate-900 hover:text-white">
+        <span class="text-slate-500">⚙</span> Admin
+      </a>
+      {% endif %}
+    </nav>
+    <div class="hidden flex-1 md:block"></div>
+    <div class="hidden border-t border-slate-800 p-4 md:block">
+      <div class="mb-3 h-32 overflow-hidden rounded-lg border border-slate-800 bg-gradient-to-br from-slate-800 via-slate-900 to-red-950/40">
+        <div class="flex h-full items-end p-3">
+          <span class="text-xs font-medium text-slate-400">Your machines</span>
+        </div>
+      </div>
+      <form method="post" action="/ns/switch" class="space-y-2">
+        <label for="ns-switch" class="block text-[11px] font-medium uppercase tracking-wider text-slate-500">Namespace</label>
+        <select id="ns-switch" name="namespace" class="w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-2 text-xs text-slate-200 focus:border-red-500 focus:outline-none" style="color-scheme: dark" onchange="this.form.submit()">
           {% for opt in nav.options %}
-          <option value="{{ opt.id }}"{% if opt.current %} selected{% endif %}>{{ opt.name }} ({{ opt.role }})</option>
+          <option value="{{ opt.id }}"{% if opt.current %} selected{% endif %}>{{ opt.name }} · {{ opt.role }}</option>
           {% endfor %}
         </select>
-        <noscript><button class="underline" type="submit">Switch</button></noscript>
+        <noscript><button class="text-xs text-slate-400 underline" type="submit">Switch namespace</button></noscript>
       </form>
-      <span class="text-gray-500">{{ nav.email }}</span>
-      <form method="post" action="/logout"><button class="underline" type="submit">Logout</button></form>
+      <div class="mt-4 flex items-center justify-between gap-2">
+        <span class="truncate text-xs text-slate-500" title="{{ nav.email }}">{{ nav.email }}</span>
+        <form method="post" action="/logout"><button class="text-xs text-slate-400 hover:text-white" type="submit">Log out</button></form>
+      </div>
     </div>
-  </div>
-</header>
+    <div class="flex items-center gap-2 px-4 pb-3 text-xs text-slate-500 md:hidden">
+      <form method="post" action="/ns/switch" class="flex min-w-0 flex-1 items-center gap-2">
+        <label for="ns-switch-mobile" class="shrink-0">Namespace</label>
+        <select id="ns-switch-mobile" name="namespace" class="min-w-0 rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200" style="color-scheme: dark" onchange="this.form.submit()">
+          {% for opt in nav.options %}
+          <option value="{{ opt.id }}"{% if opt.current %} selected{% endif %}>{{ opt.name }} · {{ opt.role }}</option>
+          {% endfor %}
+        </select>
+      </form>
+      <form method="post" action="/logout"><button class="whitespace-nowrap hover:text-white" type="submit">Log out</button></form>
+    </div>
+  </aside>
+  <div class="min-w-0 flex-1">

@@ -7,88 +7,88 @@
 <script src="/assets/tailwind.js"></script>
 <script src="/assets/htmx.min.js"></script>
 </head>
-<body class="bg-gray-100 text-gray-900 min-h-screen">
-<header class="bg-white border-b">
-  <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+<body class="min-h-screen bg-slate-950 text-slate-100">
+<header class="border-b border-slate-800 bg-slate-950">
+  <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
     <div class="flex items-center gap-3">
-      <a href="/vms" class="underline text-sm">← VMs</a>
-      {% if !namespace.is_empty() %}<span class="text-gray-500 text-sm">{{ namespace }} /</span>{% endif %}
-      <span class="font-bold text-lg">{{ vm.name }}</span>
-      <span class="text-xs bg-gray-200 rounded px-2 py-0.5">{{ vm.status }}</span>
+      <a href="/vms" class="text-sm text-slate-400 hover:text-white">← Machines</a>
+      {% if !namespace.is_empty() %}<span class="text-sm text-slate-600">/ {{ namespace }}</span>{% endif %}
+      <span class="text-lg font-semibold text-white">{{ vm.name }}</span>
+      <span class="rounded-full bg-slate-800 px-2.5 py-1 text-xs text-slate-300">{{ vm.status }}</span>
     </div>
     <div class="flex items-center gap-3 text-sm">
-      <span class="text-gray-500">{{ email }}</span>
-      <form method="post" action="/logout"><button class="underline" type="submit">Logout</button></form>
+      <span class="hidden text-slate-500 sm:inline">{{ email }}</span>
+      <form method="post" action="/logout"><button class="text-slate-400 hover:text-white" type="submit">Log out</button></form>
     </div>
   </div>
 </header>
-<main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+<main class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
   {% if error.is_some() %}
-  <div class="bg-red-100 text-red-700 text-sm rounded px-3 py-2">{{ error.as_deref().unwrap_or("") }}</div>
+  <div class="rounded-lg border border-red-900/70 bg-red-950/50 px-4 py-3 text-sm text-red-300">{{ error.as_deref().unwrap_or("") }}</div>
   {% endif %}
 
-  <section class="bg-white shadow rounded p-4">
-    <dl class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-      <div><dt class="text-gray-500 text-xs">ID</dt><dd class="font-mono text-xs break-all">{{ vm.id }}</dd></div>
-      <div><dt class="text-gray-500 text-xs">Image</dt><dd>{{ vm.image }}</dd></div>
-      <div><dt class="text-gray-500 text-xs">vCPU / Mem</dt><dd>{{ vm.vcpu }} / {{ vm.memory_mib }}M</dd></div>
-      <div><dt class="text-gray-500 text-xs">Node</dt><dd>{% if vm.node.is_some() %}{{ vm.node.as_deref().unwrap_or("") }}{% else %}-{% endif %}</dd></div>
+  <section class="rounded-xl border border-slate-800 bg-slate-900/70 p-5">
+    <dl class="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
+      <div><dt class="mb-1 text-xs text-slate-500">ID</dt><dd class="break-all font-mono text-xs text-slate-300">{{ vm.id }}</dd></div>
+      <div><dt class="mb-1 text-xs text-slate-500">Image</dt><dd class="text-slate-200">{{ vm.image }}</dd></div>
+      <div><dt class="mb-1 text-xs text-slate-500">vCPU / Memory</dt><dd class="text-slate-200">{{ vm.vcpu }} / {{ vm.memory_mib }} MiB</dd></div>
+      <div><dt class="mb-1 text-xs text-slate-500">Node</dt><dd class="text-slate-200">{% if vm.node.is_some() %}{{ vm.node.as_deref().unwrap_or("") }}{% else %}—{% endif %}</dd></div>
     </dl>
     <div class="flex flex-wrap gap-2 mt-4 text-sm">
-      <a class="bg-black text-white rounded px-3 py-1.5" href="/vms/{{ vm.id }}/terminal">Open terminal</a>
-      <form method="post" action="/vms/{{ vm.id }}/start"><button class="border rounded px-3 py-1.5" type="submit">Start</button></form>
-      <form method="post" action="/vms/{{ vm.id }}/stop"><button class="border rounded px-3 py-1.5" type="submit">Stop</button></form>
-      <form method="post" action="/vms/{{ vm.id }}/delete" onsubmit="return confirm('Destroy {{ vm.name }}?')"><button class="border border-red-300 text-red-600 rounded px-3 py-1.5" type="submit">Destroy</button></form>
+      <a class="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-400" href="/vms/{{ vm.id }}/terminal">Open terminal</a>
+      <form method="post" action="/vms/{{ vm.id }}/start"><button class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-slate-500 hover:text-white" type="submit">Start</button></form>
+      <form method="post" action="/vms/{{ vm.id }}/stop"><button class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-slate-500 hover:text-white" type="submit">Stop</button></form>
+      <form method="post" action="/vms/{{ vm.id }}/delete" onsubmit="return confirm('Destroy {{ vm.name }}?')"><button class="rounded-lg border border-red-900/70 px-4 py-2 text-sm text-red-300 hover:border-red-500" type="submit">Delete</button></form>
     </div>
   </section>
 
-  <section class="bg-white shadow rounded p-4">
-    <h2 class="font-semibold mb-2">Run command <span class="text-xs font-normal text-gray-500">(non-PTY exec over the WS relay, like <code>kletka exec</code>)</span></h2>
+  <section class="rounded-xl border border-slate-800 bg-slate-900/70 p-5">
+    <h2 class="mb-3 font-medium text-white">Run command</h2>
     <div class="flex gap-2">
-      <input id="exec-cmd" value="uname -a" class="flex-1 border rounded px-2 py-1 text-sm font-mono" placeholder="uname -a">
-      <button id="exec-run" class="bg-black text-white rounded px-3 py-1.5 text-sm">Run</button>
+      <input id="exec-cmd" value="uname -a" class="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-mono text-white placeholder:text-slate-600 focus:border-red-500 focus:outline-none" placeholder="uname -a">
+      <button id="exec-run" class="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-400">Run</button>
     </div>
-    <pre id="exec-out" class="bg-black text-green-200 rounded mt-3 p-3 text-xs overflow-auto min-h-16 whitespace-pre-wrap"></pre>
+    <pre id="exec-out" class="mt-3 min-h-16 overflow-auto whitespace-pre-wrap rounded-lg border border-slate-800 bg-slate-950 p-4 font-mono text-xs text-emerald-300"></pre>
   </section>
 
-  <section class="bg-white shadow rounded p-4 grid md:grid-cols-2 gap-4">
+  <section class="grid gap-4 rounded-xl border border-slate-800 bg-slate-900/70 p-5 md:grid-cols-2">
     <div>
-      <h2 class="font-semibold mb-2">Push file <span class="text-xs font-normal text-gray-500">(single files, ≤256 MiB)</span></h2>
-      <input id="push-file" type="file" class="text-sm mb-2">
+      <h2 class="mb-3 font-medium text-white">Push file</h2>
+      <input id="push-file" type="file" class="mb-3 block w-full text-sm text-slate-400 file:mr-3 file:rounded-md file:border-0 file:bg-slate-800 file:px-3 file:py-2 file:text-xs file:text-slate-200">
       <div class="flex gap-2">
-        <input id="push-dst" value="/tmp/upload.txt" class="flex-1 border rounded px-2 py-1 text-sm font-mono">
-        <button id="push-run" class="border rounded px-3 py-1.5 text-sm">Push</button>
+        <input id="push-dst" value="/tmp/upload.txt" class="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-mono text-white">
+        <button id="push-run" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:text-white">Push</button>
       </div>
-      <p id="push-status" class="text-xs text-gray-500 mt-2"></p>
+      <p id="push-status" class="mt-2 text-xs text-slate-500"></p>
     </div>
     <div>
-      <h2 class="font-semibold mb-2">Pull file</h2>
+      <h2 class="mb-3 font-medium text-white">Pull file</h2>
       <div class="flex gap-2">
-        <input id="pull-src" value="/tmp/upload.txt" class="flex-1 border rounded px-2 py-1 text-sm font-mono">
-        <button id="pull-run" class="border rounded px-3 py-1.5 text-sm">Pull</button>
+        <input id="pull-src" value="/tmp/upload.txt" class="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-mono text-white">
+        <button id="pull-run" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:text-white">Pull</button>
       </div>
-      <p id="pull-status" class="text-xs text-gray-500 mt-2"></p>
+      <p id="pull-status" class="mt-2 text-xs text-slate-500"></p>
     </div>
   </section>
 
-  <section class="bg-white shadow rounded p-4">
-    <h2 class="font-semibold mb-2">Recent activity <span class="text-xs font-normal text-gray-500">(like <code>kletka audit -n {{ vm.name }}</code>)</span></h2>
+  <section class="rounded-xl border border-slate-800 bg-slate-900/70 p-5">
+    <h2 class="mb-3 font-medium text-white">Recent activity</h2>
     {% if activity.is_empty() %}
-    <p class="text-sm text-gray-500">No events yet.</p>
+    <p class="text-sm text-slate-500">No events yet.</p>
     {% else %}
     <div class="overflow-x-auto">
       <table class="w-full text-xs">
-        <thead class="text-left text-gray-500">
+        <thead class="border-b border-slate-800 text-left text-xs uppercase tracking-wider text-slate-500">
           <tr><th class="py-1 pr-3">Time</th><th class="py-1 pr-3">Action</th><th class="py-1 pr-3">Result</th><th class="py-1 pr-3">From</th><th class="py-1">Details</th></tr>
         </thead>
         <tbody>
           {% for event in activity %}
-          <tr class="border-t">
-            <td class="py-1 pr-3 whitespace-nowrap">{{ event.time }}</td>
-            <td class="py-1 pr-3 font-mono">{{ event.action }}</td>
-            <td class="py-1 pr-3">{{ event.outcome }}</td>
-            <td class="py-1 pr-3">{{ event.from }}</td>
-            <td class="py-1 font-mono break-all">{{ event.details }}</td>
+          <tr class="border-b border-slate-800 last:border-0">
+            <td class="whitespace-nowrap py-2 pr-3 text-slate-400">{{ event.time }}</td>
+            <td class="py-2 pr-3 font-mono text-slate-300">{{ event.action }}</td>
+            <td class="py-2 pr-3 text-slate-300">{{ event.outcome }}</td>
+            <td class="py-2 pr-3 text-slate-400">{{ event.from }}</td>
+            <td class="break-all py-2 font-mono text-slate-500">{{ event.details }}</td>
           </tr>
           {% endfor %}
         </tbody>

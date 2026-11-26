@@ -7,21 +7,26 @@
 <script src="/assets/tailwind.js"></script>
 <script src="/assets/htmx.min.js"></script>
 </head>
-<body class="bg-gray-100 text-gray-900 min-h-screen">
+<body class="min-h-screen bg-slate-950 text-slate-100">
 {% include "_nav.html" %}
-<main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+<main class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
   {% if let Some(error) = error %}
-  <div class="bg-red-100 text-red-700 text-sm rounded px-3 py-2">{{ error }}</div>
+  <div class="rounded-lg border border-red-900/70 bg-red-950/50 px-4 py-3 text-sm text-red-300">{{ error }}</div>
   {% endif %}
 
-  <section class="bg-white shadow rounded p-4">
-    <div class="flex items-center justify-between mb-3">
+  <section class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/70 p-5">
+    <div class="mb-3 flex items-center justify-between gap-3">
       <h2 class="font-semibold">Your namespaces</h2>
-      <span class="text-xs text-gray-500">{{ allowance }}</span>
+      <div class="flex items-center gap-3">
+        <span class="hidden text-xs text-slate-400 sm:inline">{{ allowance }}</span>
+        {% if can_create %}
+        <button id="create-namespace-open" type="button" class="rounded-lg bg-red-500 px-3 py-2 text-sm font-medium text-white hover:bg-red-400">Create namespace</button>
+        {% endif %}
+      </div>
     </div>
     <table class="w-full text-sm">
       <thead>
-        <tr class="text-left text-gray-500 border-b">
+        <tr class="border-b border-slate-800 text-left text-xs uppercase tracking-wider text-slate-500">
           <th class="py-1 pr-2">Name</th>
           <th class="py-1 pr-2">Your role</th>
           <th class="py-1 pr-2">Members</th>
@@ -31,14 +36,14 @@
       </thead>
       <tbody>
         {% for ns in rows %}
-        <tr class="border-b last:border-0">
+        <tr class="border-b border-slate-800 text-slate-300 last:border-0">
           <td class="py-1 pr-2">
             <a class="underline font-medium" href="/namespaces/{{ ns.id }}">{{ ns.name }}</a>
-            {% if ns.personal %}<span class="text-xs bg-gray-200 rounded px-1.5 py-0.5 ml-1">personal</span>{% endif %}
+            {% if ns.personal %}<span class="ml-1 rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5 text-[11px] text-slate-300">personal</span>{% endif %}
           </td>
           <td class="py-1 pr-2">{{ ns.role }}</td>
           <td class="py-1 pr-2">{{ ns.members }}</td>
-          <td class="py-1 pr-2 text-gray-600">{{ ns.usage }}</td>
+          <td class="py-1 pr-2 text-slate-400">{{ ns.usage }}</td>
           <td class="py-1 whitespace-nowrap">
             <form class="inline" method="post" action="/ns/switch">
               <input type="hidden" name="namespace" value="{{ ns.id }}">
@@ -51,21 +56,35 @@
     </table>
   </section>
 
-  <section class="bg-white shadow rounded p-4">
-    <h2 class="font-semibold mb-3">Create namespace</h2>
-    {% if can_create %}
-    <form method="post" action="/namespaces" class="flex flex-wrap gap-2 items-end">
+  {% if !can_create %}
+  <p class="text-sm text-slate-400">{{ cannot_create_reason }}</p>
+  {% endif %}
+  {% if can_create %}
+  <dialog id="create-namespace-dialog" data-open="{% if error.is_some() %}true{% else %}false{% endif %}" aria-labelledby="create-namespace-title" class="m-auto w-[calc(100%-2rem)] max-w-md rounded-xl border border-slate-700 bg-slate-900 p-0 text-slate-100 shadow-2xl backdrop:bg-black/70 backdrop:backdrop-blur-sm">
+    <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+      <h2 id="create-namespace-title" class="font-medium text-white">Create namespace</h2>
+      <form method="dialog"><button aria-label="Close" class="grid h-8 w-8 place-items-center rounded-md text-lg text-slate-400 hover:bg-slate-800 hover:text-white">×</button></form>
+    </div>
+    <form method="post" action="/namespaces" class="space-y-4 p-5">
       <div>
-        <label class="block text-xs text-gray-500 mb-1" for="ns-name">Name</label>
-        <input id="ns-name" name="name" required maxlength="32" pattern="[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?" title="lowercase letters, digits and dashes; up to 32 characters" class="border rounded px-2 py-1 text-sm w-48" placeholder="acme">
+        <label class="mb-1.5 block text-sm font-medium text-slate-300" for="ns-name">Name</label>
+        <input id="ns-name" name="name" required maxlength="32" pattern="[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?" title="lowercase letters, digits and dashes; up to 32 characters" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-red-500 focus:outline-none" placeholder="team-name">
       </div>
-      <button type="submit" class="bg-black text-white rounded px-3 py-1.5 text-sm">Create</button>
+      <div class="flex justify-end gap-2 border-t border-slate-800 pt-4">
+        <button type="button" id="create-namespace-cancel" class="rounded-lg border border-slate-700 px-4 py-2.5 text-sm text-slate-300 hover:border-slate-500 hover:text-white">Cancel</button>
+        <button type="submit" class="rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-400">Create namespace</button>
+      </div>
     </form>
-    <p class="text-xs text-gray-500 mt-2">You become its owner. Invite people from the namespace page; VMs created there count against the namespace's own quota.</p>
-    {% else %}
-    <p class="text-sm text-gray-500">{{ cannot_create_reason }}</p>
-    {% endif %}
-  </section>
+  </dialog>
+  <script>
+  const createNamespaceDialog = document.getElementById('create-namespace-dialog');
+  if (createNamespaceDialog.dataset.open === 'true') createNamespaceDialog.showModal();
+  document.getElementById('create-namespace-open').addEventListener('click', () => createNamespaceDialog.showModal());
+  document.getElementById('create-namespace-cancel').addEventListener('click', () => createNamespaceDialog.close());
+  </script>
+  {% endif %}
 </main>
+</div>
+</div>
 </body>
 </html>
