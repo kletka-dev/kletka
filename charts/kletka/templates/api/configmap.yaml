@@ -13,7 +13,7 @@
 {{- range $provider := list "github" "gitlab" }}
 {{- $spec := index $oauth $provider }}
 {{- if $spec.enabled }}
-{{- if and (not $.Values.api.secret.existingSecret) (or (not $spec.clientId) (not $spec.clientSecret)) }}
+{{- if and (not $.Values.api.secret.existingSecret) (not $.Values.api.auth.oauth.existingSecret) (or (not $spec.clientId) (not $spec.clientSecret)) }}
 {{- fail (printf "api.auth.oauth.%s requires clientId and clientSecret (or set api.secret.existingSecret)" $provider) }}
 {{- end }}
 {{- end }}

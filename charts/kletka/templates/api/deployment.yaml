@@ -55,6 +55,9 @@ spec:
           envFrom:
             - configMapRef: { name: {{ include "kletka.apiName" . }}-config }
             - secretRef: { name: {{ include "kletka.apiSecretName" . }} }
+            {{- if .Values.api.auth.oauth.existingSecret }}
+            - secretRef: { name: {{ .Values.api.auth.oauth.existingSecret }} }
+            {{- end }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
