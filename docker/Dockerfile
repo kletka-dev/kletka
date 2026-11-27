@@ -77,7 +77,7 @@ ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/kletka-vm-agent"]
 FROM debian:trixie-slim AS image-builder
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      podman fakeroot e2fsprogs bash curl ca-certificates \
+      podman netavark nftables aardvark-dns fakeroot e2fsprogs bash curl ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 RUN printf '[storage]\ndriver = "overlay"\ngraphroot = "/var/lib/kletka/podman-store"\nrunroot = "/run/containers/storage"\n' \
       > /etc/containers/storage.conf
