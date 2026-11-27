@@ -1583,7 +1583,7 @@ dependencies = [
 
 [[package]]
 name = "kletka"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "fslock",
  "hex",
@@ -1601,7 +1601,7 @@ dependencies = [
 
 [[package]]
 name = "kletka_cli"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "axum",
  "clap",
@@ -1623,7 +1623,7 @@ dependencies = [
 
 [[package]]
 name = "kletka_control"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "argon2",
  "askama",
@@ -1653,7 +1653,7 @@ dependencies = [
 
 [[package]]
 name = "kletka_image_builder"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "axum",
  "jiff 1.0.3",
@@ -1672,7 +1672,7 @@ dependencies = [
 
 [[package]]
 name = "kletka_runtime"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "kletka",
  "kletka_types",
@@ -1686,7 +1686,7 @@ dependencies = [
 
 [[package]]
 name = "kletka_types"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "jiff 1.0.3",
  "serde",
@@ -1696,7 +1696,7 @@ dependencies = [
 
 [[package]]
 name = "kletka_vm_agent"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "axum",
  "futures-util",

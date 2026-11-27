@@ -4,7 +4,7 @@ description: >-
   Hosted Firecracker microVM sandboxes on Kubernetes
 type: application
 version: 0.0.1
-appVersion: "v0.0.1"
+appVersion: "v0.0.2"
 kubeVersion: ">=1.33.0-0"
 home: https://github.com/kletka-dev/kletka
 sources:

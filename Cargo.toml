@@ -2,7 +2,7 @@
 members = ["src/kletka", "src/kletka_cli", "src/kletka_types", "src/kletka_control", "src/kletka_runtime", "src/kletka_vm_agent", "src/kletka_image_builder"]
 resolver = "3"
 package.edition = "2024"
-package.version = "0.0.1"
+package.version = "0.0.2"
 
 [profile.dev.package."*"]
 opt-level = 3
